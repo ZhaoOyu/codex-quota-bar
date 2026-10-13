@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Codex Quota Bar
+Comment=Codex five-hour and weekly remaining quota
+Comment[zh_CN]=在顶部状态栏显示 Codex 五小时和周剩余额度
+Exec=codex-quota-bar
+Icon=utilities-system-monitor
+Terminal=false
+Categories=Utility;Monitor;
+StartupNotify=false
+

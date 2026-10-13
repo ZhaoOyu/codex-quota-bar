@@ -1,0 +1,96 @@
+name: Test, build and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-gi gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 xvfb dbus-x11
+      - name: Test protocol, quota and startup behavior
+        run: /usr/bin/python3 -m unittest discover -s tests -v
+      - name: Test GTK application lifecycle
+        run: dbus-run-session -- xvfb-run -a /usr/bin/python3 -m codex_quota_bar --demo --smoke-test
+      - name: Build and check package
+        run: |
+          /usr/bin/python3 scripts/build_deb.py
+          sudo apt-get install -y ./dist/*.deb
+          codex-quota-bar --demo --once
+          dbus-run-session -- xvfb-run -a codex-quota-bar --demo --smoke-test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-deb
+          path: dist/*.deb
+          if-no-files-found: error
+
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install build dependencies
+        run: python -m pip install . pyinstaller==6.22.3
+      - name: Test protocol, quota and startup behavior
+        run: python -m unittest discover -s tests -v
+      - name: Test native menu bar lifecycle
+        run: python -m codex_quota_bar --demo --smoke-test
+      - name: Build app
+        run: python -m PyInstaller --noconfirm packaging/macos.spec
+      - name: Test bundled application
+        run: '"dist/Codex Quota Bar.app/Contents/MacOS/Codex Quota Bar" --demo --smoke-test'
+      - name: Archive app
+        run: ditto -c -k --sequesterRsrc --keepParent 'dist/Codex Quota Bar.app' 'dist/codex-quota-bar-macos-${{ matrix.arch }}.zip'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [ubuntu, macos]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check tag matches app version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 -c 'import os; from codex_quota_bar import __version__; assert os.environ["RELEASE_TAG"] == "v" + __version__'
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum *.deb *.zip > SHA256SUMS.txt
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release create "$RELEASE_TAG" dist/*.deb dist/*.zip dist/SHA256SUMS.txt --verify-tag --title "Codex Quota Bar $RELEASE_TAG" --notes-file packaging/RELEASE_NOTES.md
+
