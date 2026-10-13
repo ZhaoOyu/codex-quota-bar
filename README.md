@@ -112,31 +112,6 @@ python -m PyInstaller --noconfirm packaging/macos.spec
 
 测试覆盖窗口识别、余量换算、倒计时边界、数据缺失、错误脱敏、真实子进程 JSON-RPC 握手、超时清理、后台状态恢复与开机启动文件。CI 还会启动两种原生界面及打包后的应用，运行三秒后退出。演示模式不能证明真实账号连接成功；应在自己的桌面上额外运行一次 `--once`。
 
-## 发布到 GitHub
-
-已提供 `.github/workflows/build.yml`：普通推送执行测试并上传构建产物；推送 `v0.1.0` 标签后，所有平台构建成功才创建 Release，附带 Ubuntu DEB、macOS 两种架构 ZIP 和 SHA256 校验文件。
-
-本项目发布目标为 `ZhaoOyu/codex-quota-bar`。在已登录 ZhaoOyu 的本机终端可直接运行：
-
-```bash
-bash scripts/publish_github.sh
-```
-
-脚本先运行测试、检查登录账号与 workflow 权限，再在临时目录创建独立 checkout，发布公开仓库和版本标签，等待 GitHub 构建完成。它不读取或输出 Token，不修改当前目录的 `.git`，不强推、不覆盖已有版本标签。若需要补充 workflow 权限，会提示浏览器授权；若构建失败，会输出对应 Actions 链接。
-
-在 GitHub CLI 已登录、当前目录可写 `.git` 的环境执行（把 OWNER 替换为你的账号）：
-
-```bash
-git init -b main
-git add .
-git commit -m "Initial Codex Quota Bar release"
-gh repo create OWNER/codex-quota-bar --public --source=. --remote=origin --push
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-已有仓库请添加其远程地址后推送，不要创建重复仓库。发布新版本时同步更新 `codex_quota_bar/__init__.py`、`pyproject.toml` 和 `packaging/macos.spec` 中的版本，再打对应标签。
-
 ## 卸载
 
 先在菜单关闭“登录系统时启动”，然后退出。Ubuntu 使用 `sudo apt remove codex-quota-bar`；macOS 删除应用即可。若应用已删除，可手动删除自己用户目录中的 `~/.config/autostart/codex-quota-bar.desktop` 或 `~/Library/LaunchAgents/io.github.codex-quota-bar.plist`。
