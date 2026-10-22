@@ -81,7 +81,10 @@ if git rev-parse --verify "refs/tags/$version" >/dev/null 2>&1; then
 else
   git tag "$version"
 fi
-git push origin main "refs/tags/$version"
+# Separate the initial branch publication from the tag event, so the workflow
+# is already present on the default branch when the release tag is pushed.
+git push origin main
+git push origin "refs/tags/$version"
 printf 'Source published: https://github.com/%s\n' "$repo"
 
 if gh release view "$version" --repo "$repo" --json url --jq .url 2>/dev/null; then
@@ -96,8 +99,21 @@ for attempt in {1..30}; do
   sleep 4
 done
 if [[ -z "$run_id" ]]; then
-  printf 'Build not scheduled yet. Check https://github.com/%s/actions\n' "$repo" >&2
-  exit 1
+  # Existing tags do not emit another push event. Recover without moving or
+  # deleting an immutable release tag. Dispatching on the tag keeps github.ref
+  # under refs/tags/, which enables the workflow's release job.
+  printf 'No tag-push build found; dispatching the workflow on %s…\n' "$version"
+  gh workflow run build.yml --repo "$repo" --ref "$version"
+  for attempt in {1..30}; do
+    run_id="$(gh run list --repo "$repo" --workflow build.yml --branch "$version" \
+      --commit "$commit" --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+    [[ -n "$run_id" ]] && break
+    sleep 4
+  done
+  if [[ -z "$run_id" ]]; then
+    printf 'Workflow dispatched, but its run is not visible yet. Check https://github.com/%s/actions\n' "$repo" >&2
+    exit 1
+  fi
 fi
 if ! gh run watch "$run_id" --repo "$repo" --exit-status; then
   printf 'Build failed. Share this URL for diagnosis: https://github.com/%s/actions/runs/%s\n' "$repo" "$run_id" >&2

@@ -1,9 +1,17 @@
+#!/usr/bin/env python3
 """Deterministic process-level protocol fixture. Contains no real credentials."""
 import json
 import sys
 import time
 
 mode = sys.argv[1] if len(sys.argv) > 1 else "ok"
+if mode == "missing-node":
+    print("env: node: No such file or directory; secret-token-do-not-display", file=sys.stderr, flush=True)
+    sys.exit(127)
+if mode == "stderr-flood":
+    for _ in range(5000):
+        print("diagnostic output secret-token-do-not-display", file=sys.stderr)
+    sys.stderr.flush()
 initialized = False
 for line in sys.stdin:
     request = json.loads(line)

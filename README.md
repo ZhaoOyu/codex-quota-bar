@@ -36,7 +36,7 @@ codex login
 从仓库的 Releases 页面下载 `.deb` 后安装：
 
 ```bash
-sudo apt install ./codex-quota-bar_0.1.0_all.deb
+sudo apt install ./codex-quota-bar_0.1.1_all.deb
 codex-quota-bar
 ```
 
@@ -66,7 +66,7 @@ python -m pip install .
 python -m codex_quota_bar
 ```
 
-Finder 不继承终端 PATH。应用会检查 PATH、Homebrew、`~/.npm-global/bin`、`~/.local/bin` 和 Codex.app 的常见路径。自定义 CLI 路径可使用：
+Finder 不继承终端 PATH。应用会检查 PATH、Homebrew、`~/.npm-global/bin`、`~/.local/bin`、Volta、nvm 和 Codex.app 的常见路径，并为 Codex 子进程补充 Node 搜索路径。自定义 CLI 路径可使用：
 
 ```bash
 python3 -m codex_quota_bar --codex /absolute/path/to/codex
@@ -74,7 +74,15 @@ python3 -m codex_quota_bar --codex /absolute/path/to/codex
 CODEX_QUOTA_CODEX_BIN=/absolute/path/to/codex python3 -m codex_quota_bar
 ```
 
-若通过 nvm 安装，优先从已加载 nvm 的终端启动应用，或把 CLI 及其 Node 运行环境加入 GUI 可见的 PATH。
+对于 nvm，优先使用当前 PATH；PATH 没有 Codex 时才按版本从新到旧查找已安装的 CLI。如果需要固定版本，可通过 `--codex` 指定。
+
+若双击启动一直显示“断开”，先退出状态栏应用，再从已能运行 Codex 的终端启动，以确认是否属于 GUI 环境差异：
+
+```bash
+"/Applications/Codex Quota Bar.app/Contents/MacOS/Codex Quota Bar" --codex "$(command -v codex)"
+```
+
+若仍失败，请检查 `codex --version`、`codex login status`，并在终端运行 `codex app-server` 查看启动错误。服务正常时会等待输入，可按 Ctrl+C 退出。应用仅显示经过分类的错误提示，不输出服务端原始日志。
 
 ## 状态说明
 

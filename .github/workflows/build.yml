@@ -60,6 +60,10 @@ jobs:
         run: python -m PyInstaller --noconfirm packaging/macos.spec
       - name: Test bundled application
         run: '"dist/Codex Quota Bar.app/Contents/MacOS/Codex Quota Bar" --demo --smoke-test'
+      - name: Test bundled RPC with Finder-style PATH
+        run: |
+          chmod +x tests/fake_codex.py
+          env PATH=/usr/bin:/bin:/usr/sbin:/sbin "dist/Codex Quota Bar.app/Contents/MacOS/Codex Quota Bar" --once --codex "$PWD/tests/fake_codex.py"
       - name: Archive app
         run: ditto -c -k --sequesterRsrc --keepParent 'dist/Codex Quota Bar.app' 'dist/codex-quota-bar-macos-${{ matrix.arch }}.zip'
       - uses: actions/upload-artifact@v4
