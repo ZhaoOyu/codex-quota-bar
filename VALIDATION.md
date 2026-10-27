@@ -1,8 +1,8 @@
 # Validation record
 
-Local environment: Ubuntu Linux, Python 3.14. Updated: 2026-10-22.
+Local environment: Ubuntu Linux, Python 3.14. Updated: 2026-10-27.
 
-- 30 automated unit and process integration tests pass: `python3 -m unittest discover -s tests -v`.
+- 34 automated unit and process integration tests pass: `python3 -m unittest discover -s tests -v`. The additional presentation tests cover weekly-only accounts, exhausted five-hour quotas, loading/error states and changing window availability.
 - Protocol integration uses a real child process with deterministic synthetic responses; no account credentials or network are needed.
 - Ubuntu DEB built with `scripts/build_deb.py`; metadata, package paths and permissions inspected; extracted launcher checked with `--demo --once`.
 - Demo CLI verified in text and JSON modes.

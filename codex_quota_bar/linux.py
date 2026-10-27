@@ -26,13 +26,11 @@ def run(controller, smoke_test=False):
     indicator.set_title("Codex Quota Bar")
     menu = Gtk.Menu()
     header = Gtk.MenuItem(label=f"Codex Quota Bar · {__version__}")
-    header.set_sensitive(False)
     menu.append(header)
     menu.append(Gtk.SeparatorMenuItem())
     rows = []
     for _ in range(5):
         item = Gtk.MenuItem(label="读取中…")
-        item.set_sensitive(False)
         rows.append(item)
         menu.append(item)
     menu.append(Gtk.SeparatorMenuItem())
@@ -65,9 +63,13 @@ def run(controller, smoke_test=False):
 
     def update():
         title, values = controller.tick()
-        indicator.set_label(title, "5h 100% · W 100% · 05:00")
-        for item, value in zip(rows, values):
-            item.set_label(value)
+        indicator.set_label(title, title)
+        for index, item in enumerate(rows):
+            if index < len(values):
+                item.set_label(values[index])
+                item.show()
+            else:
+                item.hide()
         return True
 
     update()

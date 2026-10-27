@@ -85,15 +85,20 @@ def present(quota: Quota | None, now: float, error: str = "", demo=False):
     prefix = "[演示] " if demo else ""
     if quota is None:
         return prefix + ("Codex !" if error else "Codex …"), [
-            "五小时剩余：--", "每周剩余：--", "五小时结束：--", "周额度重置：--",
             error or "正在读取 Codex 额度…"]
-    title = (f"5h {remaining_text(quota.five_hour, now)} · "
-             f"W {remaining_text(quota.weekly, now)} · {countdown(quota.five_hour, now)}")
+    title_parts = []
+    rows = []
+    if quota.five_hour is not None:
+        title_parts.append(f"5h {remaining_text(quota.five_hour, now)}")
+        rows.append(f"五小时剩余：{remaining_text(quota.five_hour, now)}")
+    title_parts.append(f"W {remaining_text(quota.weekly, now)}")
+    rows.append(f"每周剩余：{remaining_text(quota.weekly, now)}")
+    if quota.five_hour is not None:
+        title_parts.append(countdown(quota.five_hour, now))
+        rows.append(f"五小时结束：{reset_text(quota.five_hour)}")
+    rows.append(f"周额度重置：{reset_text(quota.weekly)}")
     updated = datetime.fromtimestamp(quota.fetched_at).strftime("%H:%M:%S")
     status = error or ("数据已过期，请刷新" if stale else f"更新于 {updated} · 每 60 秒刷新")
-    return prefix + ("! " if stale else "") + title, [
-        f"五小时剩余：{remaining_text(quota.five_hour, now)}",
-        f"每周剩余：{remaining_text(quota.weekly, now)}",
-        f"五小时结束：{reset_text(quota.five_hour)}",
-        f"周额度重置：{reset_text(quota.weekly)}", status]
+    rows.append(status)
+    return prefix + ("! " if stale else "") + " · ".join(title_parts), rows
 

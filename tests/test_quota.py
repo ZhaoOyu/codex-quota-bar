@@ -25,6 +25,34 @@ class QuotaTests(unittest.TestCase):
         self.assertIsNone(quota.weekly)
         self.assertIn("W --", present(quota, 1001)[0])
 
+    def test_weekly_only_hides_five_hour_everywhere(self):
+        for primary, secondary in ((None, window(38, 10080)), (window(38, 10080), None)):
+            with self.subTest(primary=primary):
+                title, rows = present(self.parse(primary, secondary), 1001)
+                self.assertEqual(title, "W 62%")
+                self.assertEqual(len(rows), 3)
+                self.assertFalse(any("五小时" in row for row in rows))
+                self.assertTrue(rows[0].startswith("每周剩余：62%"))
+                self.assertTrue(rows[1].startswith("周额度重置："))
+
+    def test_exhausted_five_hour_window_is_not_hidden(self):
+        title, rows = present(self.parse(window(100), window(38, 10080)), 1001)
+        self.assertIn("5h 0%", title)
+        self.assertEqual(len(rows), 5)
+        self.assertTrue(any("五小时结束" in row for row in rows))
+
+    def test_error_and_loading_do_not_invent_windows(self):
+        for error in ("", "读取失败"):
+            title, rows = present(None, 1001, error)
+            self.assertEqual(len(rows), 1)
+            self.assertNotIn("五小时", rows[0])
+
+    def test_window_can_disappear_and_return(self):
+        both = self.parse(window(), window(38, 10080))
+        weekly = self.parse(None, window(38, 10080))
+        self.assertEqual([len(present(q, 1001)[1]) for q in (both, weekly, None, both)],
+                         [5, 3, 1, 5])
+
     def test_unknown_duration_not_mislabeled(self):
         with self.assertRaises(ValueError):
             self.parse(window(duration=15))

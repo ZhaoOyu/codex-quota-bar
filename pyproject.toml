@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "codex-quota-bar"
-version = "0.1.1"
+version = "0.1.2"
 description = "Codex five-hour and weekly quota in your macOS or Ubuntu menu bar"
 readme = "README.md"
 requires-python = ">=3.10"

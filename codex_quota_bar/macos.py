@@ -8,7 +8,7 @@ from .client import UsageError
 
 def run(controller, smoke_test=False):
     app = rumps.App("Codex Quota Bar", title="Codex …", quit_button=None)
-    rows = [rumps.MenuItem(f"读取中… {i}") for i in range(5)]
+    rows = []
     auto = rumps.MenuItem("登录系统时启动")
     auto.state = startup.is_enabled()
 
@@ -20,7 +20,13 @@ def run(controller, smoke_test=False):
             rumps.alert("无法修改开机启动设置", "请检查用户目录权限和 Codex 路径。")
 
     auto.set_callback(toggle)
-    app.menu = [rumps.MenuItem(f"Codex Quota Bar · {__version__}"), None, *rows, None,
+    # A missing callback disables NSMenuItems and renders their text grey.
+    # Information rows are enabled but deliberately have no side effects.
+    def information_clicked(_):
+        pass
+
+    header = rumps.MenuItem(f"Codex Quota Bar · {__version__}", callback=information_clicked)
+    actions = [
                 rumps.MenuItem("立即刷新", callback=controller.refresh),
                 rumps.MenuItem("打开 Codex 用量页面", callback=lambda _: webbrowser.open("https://chatgpt.com/codex/settings/usage")),
                 rumps.MenuItem("登录说明", callback=lambda _: rumps.alert(
@@ -28,7 +34,12 @@ def run(controller, smoke_test=False):
                 auto, rumps.MenuItem("退出", callback=lambda _: rumps.quit_application())]
 
     def update(_):
+        nonlocal rows
         app.title, values = controller.tick()
+        if len(rows) != len(values):
+            rows = [rumps.MenuItem(value, callback=information_clicked) for value in values]
+            app.menu.clear()
+            app.menu = [header, None, *rows, None, *actions]
         for item, value in zip(rows, values):
             item.title = value
 
