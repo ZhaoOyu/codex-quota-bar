@@ -2,7 +2,7 @@
 
 Local environment: Ubuntu Linux, Python 3.14. Updated: 2026-10-27.
 
-- 37 automated unit and process integration tests pass: `python3 -m unittest discover -s tests -v`. Presentation tests cover weekly-only countdowns spanning multiple days, missing/expired resets, five-hour countdown priority, exhausted quotas, loading/error states and changing window availability.
+- 39 automated unit and process integration tests pass: `python3 -m unittest discover -s tests -v`. Presentation tests cover weekly-only day/hour countdowns and the 24-hour boundary, unchanged default hour formatting, missing/expired resets, five-hour countdown priority, exhausted quotas, loading/error states and changing window availability.
 - Protocol integration uses a real child process with deterministic synthetic responses; no account credentials or network are needed.
 - Ubuntu DEB built with `scripts/build_deb.py`; metadata, package paths and permissions inspected; extracted launcher checked with `--demo --once`.
 - Demo CLI verified in text and JSON modes.

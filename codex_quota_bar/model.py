@@ -61,12 +61,15 @@ def remaining_text(window: Window | None, now: float) -> str:
     return f"{math.floor(window.remaining)}%"
 
 
-def countdown(window: Window | None, now: float) -> str:
+def countdown(window: Window | None, now: float, *, show_days: bool = False) -> str:
     if window is None or window.resets_at is None:
         return "--:--"
     seconds = window.resets_at - now
     if seconds <= 0:
         return "待刷新"
+    if show_days and seconds > 24 * 3600:
+        hours = math.floor(seconds / 3600)
+        return f"{hours // 24}天{hours % 24}小时"
     minutes = math.ceil(seconds / 60)
     return f"{minutes // 60:02d}:{minutes % 60:02d}"
 
@@ -94,7 +97,7 @@ def present(quota: Quota | None, now: float, error: str = "", demo=False):
     title_parts.append(f"W {remaining_text(quota.weekly, now)}")
     rows.append(f"每周剩余：{remaining_text(quota.weekly, now)}")
     countdown_window = quota.five_hour if quota.five_hour is not None else quota.weekly
-    title_parts.append(countdown(countdown_window, now))
+    title_parts.append(countdown(countdown_window, now, show_days=quota.five_hour is None))
     if quota.five_hour is not None:
         rows.append(f"五小时结束：{reset_text(quota.five_hour)}")
     rows.append(f"周额度重置：{reset_text(quota.weekly)}")

@@ -37,8 +37,22 @@ class QuotaTests(unittest.TestCase):
 
     def test_weekly_countdown_handles_multiple_days(self):
         quota = self.parse(None, window(38, 10080, reset=1000 + 72 * 3600 + 15 * 60))
-        self.assertEqual(present(quota, 1000)[0], "W 62% · 72:15")
-        self.assertEqual(present(quota, 1060)[0], "W 62% · 72:14")
+        self.assertEqual(present(quota, 1000)[0], "W 62% · 3天0小时")
+        self.assertEqual(present(quota, 1060)[0], "W 62% · 3天0小时")
+
+    def test_weekly_countdown_day_boundary(self):
+        for seconds, expected in ((24 * 3600 - 61, "23:59"),
+                                  (24 * 3600, "24:00"),
+                                  (24 * 3600 + 1, "1天0小时"),
+                                  (47 * 3600 + 3599, "1天23小时"),
+                                  (48 * 3600, "2天0小时"),
+                                  (75 * 3600, "3天3小时")):
+            with self.subTest(seconds=seconds):
+                quota = self.parse(None, window(38, 10080, 1000 + seconds))
+                self.assertEqual(present(quota, 1000)[0], "W 62% · " + expected)
+
+    def test_default_countdown_keeps_hours(self):
+        self.assertEqual(countdown(Window(62, 1000 + 75 * 3600), 1000), "75:00")
 
     def test_weekly_countdown_missing_or_expired_reset(self):
         for reset, expected in ((None, "W 62% · --:--"), (1000, "W 待刷新 · 待刷新")):
