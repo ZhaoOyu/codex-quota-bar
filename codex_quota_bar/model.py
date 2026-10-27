@@ -93,8 +93,9 @@ def present(quota: Quota | None, now: float, error: str = "", demo=False):
         rows.append(f"五小时剩余：{remaining_text(quota.five_hour, now)}")
     title_parts.append(f"W {remaining_text(quota.weekly, now)}")
     rows.append(f"每周剩余：{remaining_text(quota.weekly, now)}")
+    countdown_window = quota.five_hour if quota.five_hour is not None else quota.weekly
+    title_parts.append(countdown(countdown_window, now))
     if quota.five_hour is not None:
-        title_parts.append(countdown(quota.five_hour, now))
         rows.append(f"五小时结束：{reset_text(quota.five_hour)}")
     rows.append(f"周额度重置：{reset_text(quota.weekly)}")
     updated = datetime.fromtimestamp(quota.fetched_at).strftime("%H:%M:%S")

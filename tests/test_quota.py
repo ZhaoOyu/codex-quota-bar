@@ -29,11 +29,27 @@ class QuotaTests(unittest.TestCase):
         for primary, secondary in ((None, window(38, 10080)), (window(38, 10080), None)):
             with self.subTest(primary=primary):
                 title, rows = present(self.parse(primary, secondary), 1001)
-                self.assertEqual(title, "W 62%")
+                self.assertEqual(title, "W 62% · 02:30")
                 self.assertEqual(len(rows), 3)
                 self.assertFalse(any("五小时" in row for row in rows))
                 self.assertTrue(rows[0].startswith("每周剩余：62%"))
                 self.assertTrue(rows[1].startswith("周额度重置："))
+
+    def test_weekly_countdown_handles_multiple_days(self):
+        quota = self.parse(None, window(38, 10080, reset=1000 + 72 * 3600 + 15 * 60))
+        self.assertEqual(present(quota, 1000)[0], "W 62% · 72:15")
+        self.assertEqual(present(quota, 1060)[0], "W 62% · 72:14")
+
+    def test_weekly_countdown_missing_or_expired_reset(self):
+        for reset, expected in ((None, "W 62% · --:--"), (1000, "W 待刷新 · 待刷新")):
+            with self.subTest(reset=reset):
+                self.assertEqual(present(self.parse(None, window(38, 10080, reset)), 1000)[0], expected)
+
+    def test_five_hour_countdown_takes_priority(self):
+        for reset, expected in ((4600, "01:00"), (None, "--:--"), (1000, "待刷新")):
+            with self.subTest(reset=reset):
+                quota = self.parse(window(reset=reset), window(38, 10080, 1000 + 72 * 3600))
+                self.assertTrue(present(quota, 1000)[0].endswith(" · " + expected))
 
     def test_exhausted_five_hour_window_is_not_hidden(self):
         title, rows = present(self.parse(window(100), window(38, 10080)), 1001)
