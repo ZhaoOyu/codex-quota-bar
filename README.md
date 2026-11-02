@@ -13,7 +13,7 @@
 
 <img src="docs/images/macos-panel.png" alt="macOS 原生详情面板演示" width="340">
 
-以上为**演示数据的原生组件渲染**，不是账户截图；实际面板的半透明效果取决于系统外观和桌面背景。当前 macOS / Ubuntu 圆环界面请从源码运行，历史 Release 安装包的界面以相应版本说明为准。
+以上为**演示数据的原生组件渲染**，不是账户截图；实际面板的半透明效果取决于系统外观和桌面背景。macOS / Ubuntu 圆环界面从 **v0.1.5** 起包含在 Release 安装包中，也可从源码运行。
 
 首次使用会优先选择可用的五小时窗口，否则选择周窗口。手动选择后不再自动切换：例如账号只返回周额度，但选择了“五小时”，对应位置会显示未知值，而不会替换成周额度。详情面板只在账号返回五小时窗口时显示该区域。
 
@@ -61,7 +61,7 @@ python -m codex_quota_bar
 
 ### 预构建安装包
 
-[Releases](https://github.com/ZhaoOyu/codex-quota-bar/releases) 提供历史版本安装包。Apple Silicon 选 `arm64` ZIP，Intel 选 `x86_64` ZIP；解压后拖到“应用程序”，再双击启动。仓库最新源码的界面改动不一定已包含在已发布安装包中。
+[Releases](https://github.com/ZhaoOyu/codex-quota-bar/releases) 提供安装包，**v0.1.5** 包含本文所示的新界面。Apple Silicon 选 `arm64` ZIP，Intel 选 `x86_64` ZIP；解压后拖到“应用程序”，再双击启动。请下载 v0.1.5 或更新版本；更早版本的界面以对应发布说明为准。
 
 预构建包在 macOS 14 / macOS 15 Intel 上构建。当前构建未使用 Apple Developer ID 签名或公证；若系统阻止打开，请先核验 Release 附带的 SHA256SUMS，再在“系统设置 → 隐私与安全性”批准此应用，不要关闭全局安全检查。
 
@@ -103,7 +103,7 @@ nvm 优先使用当前 PATH；没有找到 Codex 时才按版本从新到旧查�
 从 [Releases](https://github.com/ZhaoOyu/codex-quota-bar/releases) 下载 `.deb` 后安装，例如：
 
 ```bash
-sudo apt install ./codex-quota-bar_0.1.4_all.deb
+sudo apt install ./codex-quota-bar_0.1.5_all.deb
 codex-quota-bar
 ```
 
@@ -188,4 +188,4 @@ defaults delete io.github.codex-quota-bar
 
 ---
 
-**English:** A lightweight native quota monitor for macOS and Ubuntu. On both platforms, a bold quota ring shows a remaining value with an H/W marker and a reset countdown; a native panel provides details and independent weekly/five-hour selection buttons. Ubuntu uses GTK and a symbolic SVG indicator; open the panel from the tray menu or with middle-click where supported. Requires the Codex CLI signed in with a ChatGPT account. Performs no inference and stores no account tokens. The new UI is available from source; historical Releases may have an earlier interface. macOS packages are unsigned and not notarized.
+**English:** A lightweight native quota monitor for macOS and Ubuntu. On both platforms, a bold quota ring shows a remaining value with an H/W marker and a reset countdown; a native panel provides details and independent weekly/five-hour selection buttons. Ubuntu uses GTK and a symbolic SVG indicator; open the panel from the tray menu or with middle-click where supported. Requires the Codex CLI signed in with a ChatGPT account. Performs no inference and stores no account tokens. The new UI is included in v0.1.5 and later releases, and is also available from source. macOS packages are unsigned and not notarized.
