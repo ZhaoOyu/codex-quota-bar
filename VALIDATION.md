@@ -10,6 +10,7 @@ Environment: Ubuntu 22.04 ARM64 in OrbStack, system Python 3.10, GTK 3.24.33, Ay
 - Light and dark Adwaita renders were inspected under Openbox. Header and countdown rows align vertically; panel visibility was confirmed with a window manager. Screenshots use explicitly labelled demo data, not account data.
 - The Ubuntu 22.04 tray API exposes a menu rather than arbitrary GTK controls. Open the native panel via “打开额度面板”, or middle-click where the desktop supports secondary activation. Newer Ayatana primary activation is connected when available. A full GNOME Shell / Wayland session and its exact tray sizing/spacing have not been visually validated here.
 - The DEB was built, installed in the Ubuntu VM without optional GNOME packages, and its installed launcher passed `--demo --once` and the GTK smoke test. Both bundled symbolic icons were included. CI installs Cairo and the SVG loader and runs native GTK tests under Xvfb.
+- GitHub also exposed an existing macOS bundle-only crash: `NSUserDefaults` rejects a named suite equal to the running bundle identifier. The app now uses standard defaults inside its bundle and the same named domain when run from source, preserving stored choices. A locally built ARM64 app passed its packaged GUI smoke test after the fix.
 - Ordinary startup continues to use the existing real Codex JSON-RPC controller. No Linux account credentials were copied to the VM; live account access in that VM is not claimed.
 
 

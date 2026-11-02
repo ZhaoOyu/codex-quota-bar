@@ -5,7 +5,7 @@ import webbrowser
 
 import AppKit as A
 import objc
-from Foundation import NSObject, NSTimer, NSRunLoop, NSRunLoopCommonModes, NSUserDefaults, NSAttributedString
+from Foundation import NSObject, NSTimer, NSRunLoop, NSRunLoopCommonModes, NSUserDefaults, NSAttributedString, NSBundle
 
 from . import __version__, startup
 from .client import UsageError
@@ -19,6 +19,15 @@ def symbol(name, description):
 
 def selected_window(preferences, key, quota):
     return choose_window(preferences.stringForKey_(key), quota)
+
+
+def app_preferences():
+    domain = "io.github.codex-quota-bar"
+    # NSUserDefaults rejects a named suite equal to the running app's bundle ID.
+    # The bundled app's standard defaults already use that same persistent domain.
+    if NSBundle.mainBundle().bundleIdentifier() == domain:
+        return NSUserDefaults.standardUserDefaults()
+    return NSUserDefaults.alloc().initWithSuiteName_(domain)
 
 
 def status_image(window, now, choice="five_hour"):
@@ -69,7 +78,7 @@ class QuotaPanel(NSObject):
     @objc.python_method
     def configure(self, controller, preferences=None):
         self.controller = controller
-        self.preferences = preferences if preferences is not None else NSUserDefaults.alloc().initWithSuiteName_("io.github.codex-quota-bar")
+        self.preferences = preferences if preferences is not None else app_preferences()
         self.status = A.NSStatusBar.systemStatusBar().statusItemWithLength_(A.NSVariableStatusItemLength)
         self.button = self.status.button()
         self.button.setTarget_(self)
