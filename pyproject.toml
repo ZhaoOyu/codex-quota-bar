@@ -17,3 +17,5 @@ codex-quota-bar = "codex_quota_bar.__main__:main"
 [tool.setuptools.packages.find]
 include = ["codex_quota_bar*"]
 
+[tool.setuptools.package-data]
+codex_quota_bar = ["icons/*.svg"]

@@ -13,7 +13,7 @@
 
 <img src="docs/images/macos-panel.png" alt="macOS 原生详情面板演示" width="340">
 
-以上为**演示数据的原生组件渲染**，不是账户截图；实际面板的半透明效果取决于系统外观和桌面背景。当前 macOS 圆环界面请从源码运行，历史 Release 安装包的界面以相应版本说明为准。
+以上为**演示数据的原生组件渲染**，不是账户截图；实际面板的半透明效果取决于系统外观和桌面背景。当前 macOS / Ubuntu 圆环界面请从源码运行，历史 Release 安装包的界面以相应版本说明为准。
 
 首次使用会优先选择可用的五小时窗口，否则选择周窗口。手动选择后不再自动切换：例如账号只返回周额度，但选择了“五小时”，对应位置会显示未知值，而不会替换成周额度。详情面板只在账号返回五小时窗口时显示该区域。
 
@@ -26,7 +26,7 @@
 - 倒计时分钟向上取整。周倒计时超过 24 小时显示天和小时，省略不足一小时的部分；否则显示 `小时:分钟`。五小时倒计时使用 `小时:分钟`。
 - 重置时间已到时显示“待刷新”，等待服务器返回新数据，不自动假定额度恢复。
 - 请求失败后清空旧额度，避免切换账号后继续显示旧账号数据；上次成功数据超过 3 分钟时标记过期。
-- 不保存、不输出账号令牌。显示偏好保存在 macOS 用户偏好设置中，开机启动配置保存在当前用户目录中。
+- 不保存、不输出账号令牌。显示偏好保存在 macOS 用户偏好设置或 Ubuntu 的 `$XDG_CONFIG_HOME/codex-quota-bar/preferences.json`（默认 `~/.config/codex-quota-bar/preferences.json`）中；仅保存两个窗口选择，不含账号信息。开机启动配置保存在当前用户目录中。
 
 ## 准备 Codex 登录
 
@@ -89,16 +89,16 @@ nvm 优先使用当前 PATH；没有找到 Codex 时才按版本从新到旧查�
 
 ## Ubuntu 安装与运行
 
-目标环境：Ubuntu 22.04+、Python 3.10+、GNOME + AppIndicator。Ubuntu 和命令行保持文字显示，不使用 macOS 圆环界面：
+目标环境：Ubuntu 22.04+、Python 3.10+、GNOME + AppIndicator。Ubuntu 现在使用与 macOS 一致的显示结构：
 
-```text
-5h 78% · W 62% · 02:34
-│        │       └─ 五小时窗口距离重置还有 2 小时 34 分钟
-│        └───────── 周剩余额度
-└────────────────── 五小时剩余额度
-```
+- 顶部为**加粗额度圆环 + 中央数值 + 底部 H/W**，省略百分号；右侧用 `·` 连接所选窗口的重置倒计时，不显示倒计时图标。
+- GTK 原生详情面板提供额度、进度条、重置时间、刷新状态，以及独立的“图标额度”和“右侧倒计时”两组 **每周 / 五小时** 按钮。
+- 标题和倒计时行的图标、文字、数值垂直居中；控件跟随 GTK 主题，圆环使用 symbolic SVG。字体、颜色、托盘大小和间距由桌面主题及 AppIndicator 扩展决定，不使用 macOS 的半透明材质。
+- Ubuntu 22.04 中点击托盘图标后选择 **打开额度面板**；支持的桌面也可中键直接打开。新版 Ayatana 若提供主激活信号，则同时支持直接打开。按 Esc 或点击其他窗口关闭面板。
 
-没有五小时窗口时隐藏相关信息，显示周额度及其倒计时，例如 `W 62% · 3天3小时`。周额度未提供时显示 `--`。
+<img src="docs/images/ubuntu-panel.png" alt="Ubuntu GTK 原生详情面板演示" width="360">
+
+图为 Ubuntu 22.04、GTK 3 / Adwaita 浅色主题下的演示数据截图。与 macOS 共用额度选择和有效性规则，正常启动读取真实数据。没有五小时窗口时隐藏该详情区域；手动选中缺失窗口时保留选择并显示未知值。
 
 从 [Releases](https://github.com/ZhaoOyu/codex-quota-bar/releases) 下载 `.deb` 后安装，例如：
 
@@ -112,7 +112,7 @@ codex-quota-bar
 从源码运行（先克隆仓库并进入目录）：
 
 ```bash
-sudo apt install python3-gi gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 gnome-shell-extension-appindicator
+sudo apt install python3-gi python3-cairo librsvg2-common gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 gnome-shell-extension-appindicator
 /usr/bin/python3 -m codex_quota_bar
 ```
 
@@ -120,15 +120,17 @@ Ubuntu 请用系统 Python；普通虚拟环境通常无法导入 apt 安装的 
 
 ## 状态说明
 
-| 状态 | macOS 圆环界面 | Ubuntu / 命令行 |
-| --- | --- | --- |
-| 正常 | 圆环内数值 + 底部 `H/W`，右侧为所选窗口倒计时 | `5h 78% · W 62% · 02:34` |
-| 未返回所选额度 | 虚线圆环、`--` | 对应值为 `--`，缺失的五小时窗口隐藏 |
-| 未返回重置时间 | `--:--` | `--:--` |
-| 重置时间已到 | 虚线圆环、`--`，所选倒计时为“待刷新” | 对应数值和倒计时为“待刷新” |
-| 查询失败 | 清空额度、显示 `!`，面板内有错误提示 | `Codex !`，菜单内有错误提示 |
-| 数据超过 3 分钟未更新 | 倒计时前显示 `!`，面板提示过期 | 标题前显示 `!` |
-| 演示模式 | 菜单栏和面板带“演示”标记 | 标题带 `[演示]` |
+| 状态 | macOS / Ubuntu 圆环界面 |
+| --- | --- |
+| 正常 | 圆环内数值 + 底部 `H/W`，右侧为所选窗口倒计时 |
+| 未返回所选额度 | 虚线圆环、`--` |
+| 未返回重置时间 | `--:--` |
+| 重置时间已到 | 虚线圆环、`--`，所选倒计时为“待刷新” |
+| 查询失败 | 清空额度、显示 `!`，面板内有错误提示 |
+| 数据超过 3 分钟未更新 | 倒计时前显示 `!`，面板提示过期 |
+| 演示模式 | 状态栏和面板带“演示”标记 |
+
+命令行 `--once` 保留简洁的文字格式，例如 `5h 78% · W 62% · 02:34`；没有五小时窗口时显示周额度及其倒计时。
 
 应用每次刷新启动短生命周期的 `codex app-server` 子进程，通过 stdio 完成初始化并调用 `account/rateLimits/read`，随后关闭进程。网络操作在后台线程中运行，不阻塞界面。
 
@@ -144,11 +146,11 @@ Ubuntu 请用系统 Python；普通虚拟环境通常无法导入 apt 安装的 
 python -m codex_quota_bar --once           # 读取真实数据，不启动界面
 python -m codex_quota_bar --once --json    # 输出额度 JSON，无令牌
 python -m codex_quota_bar --demo           # 原生界面演示
-python -m codex_quota_bar --demo --smoke-test  # 展开 macOS 面板，3 秒后退出
+python -m codex_quota_bar --demo --smoke-test  # 展开原生面板，3 秒后退出
 python -m unittest discover -s tests -v
 ```
 
-测试无需账号和网络。macOS 的 AppKit 测试需要可用的桌面会话；Linux 自动跳过这部分测试。测试覆盖额度解析、倒计时、错误脱敏、真实子进程 JSON-RPC、超时清理、后台状态恢复、启动配置，以及原生按钮直接选择、选中状态与偏好保存。
+测试无需账号和网络。macOS 的 AppKit 测试需要可用的桌面会话；Linux 自动跳过这部分测试。GTK 交互测试需要 Linux 图形会话，macOS 自动跳过；无显示环境时可使用 `dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -v`（先安装 `xvfb dbus-x11`）。测试覆盖额度解析、倒计时、错误脱敏、真实子进程 JSON-RPC、超时清理、后台状态恢复、启动配置，以及原生按钮直接选择、选中状态与偏好保存。
 
 macOS 本机打包：
 
@@ -174,6 +176,8 @@ python3 scripts/build_deb.py  # 输出 dist/*.deb
 - Ubuntu：`~/.config/autostart/codex-quota-bar.desktop`
 - macOS：`~/Library/LaunchAgents/io.github.codex-quota-bar.plist`
 
+Ubuntu 的显示选择保存在 `~/.config/codex-quota-bar/preferences.json`（设置了 `XDG_CONFIG_HOME` 时使用对应目录）；退出应用后删除该文件即可重置。
+
 macOS 的显示选择保存在 `io.github.codex-quota-bar` 偏好域。需要同时清除选择时，退出应用后运行：
 
 ```bash
@@ -184,4 +188,4 @@ defaults delete io.github.codex-quota-bar
 
 ---
 
-**English:** A lightweight native quota monitor for macOS and Ubuntu. On macOS, a bold quota ring shows a remaining value with an H/W marker and a reset countdown; a native popover provides details and independent weekly/five-hour selection buttons. Ubuntu retains its text indicator. Requires the Codex CLI signed in with a ChatGPT account. Performs no inference and stores no account tokens. The new macOS UI is available from source; historical Releases may have an earlier interface. macOS packages are unsigned and not notarized.
+**English:** A lightweight native quota monitor for macOS and Ubuntu. On both platforms, a bold quota ring shows a remaining value with an H/W marker and a reset countdown; a native panel provides details and independent weekly/five-hour selection buttons. Ubuntu uses GTK and a symbolic SVG indicator; open the panel from the tray menu or with middle-click where supported. Requires the Codex CLI signed in with a ChatGPT account. Performs no inference and stores no account tokens. The new UI is available from source; historical Releases may have an earlier interface. macOS packages are unsigned and not notarized.

@@ -37,7 +37,7 @@ def main():
             f"Package: codex-quota-bar\nVersion: {__version__}\nArchitecture: all\n"
             "Maintainer: Codex Quota Bar contributors <noreply@users.noreply.github.com>\n"
             "Section: utils\nPriority: optional\n"
-            "Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-3.0, gir1.2-ayatanaappindicator3-0.1\n"
+            "Depends: python3 (>= 3.10), python3-gi, python3-cairo, librsvg2-common, gir1.2-gtk-3.0, gir1.2-ayatanaappindicator3-0.1\n"
             "Recommends: gnome-shell-extension-appindicator\n"
             "Description: Codex five-hour and weekly quota in the top panel\n"
             " Native status indicator using the local Codex CLI login.\n")

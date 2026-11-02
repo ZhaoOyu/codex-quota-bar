@@ -10,30 +10,15 @@ from Foundation import NSObject, NSTimer, NSRunLoop, NSRunLoopCommonModes, NSUse
 from . import __version__, startup
 from .client import UsageError
 from .model import countdown, remaining_text, reset_text
+from .display import WINDOWS, WINDOW_LABELS, CONTROL_LABELS, choose_window, fraction
 
 
 def symbol(name, description):
     return A.NSImage.imageWithSystemSymbolName_accessibilityDescription_(name, description)
 
 
-def fraction(window, now):
-    # Missing and expired windows must not look like a measured zero or 100%.
-    if window is None or (window.resets_at is not None and now >= window.resets_at):
-        return None
-    return max(0, min(1, window.remaining / 100))
-
-
-WINDOWS = ("five_hour", "weekly")
-WINDOW_LABELS = {"five_hour": "五小时", "weekly": "每周"}
-CONTROL_LABELS = {"quotaWindow": "图标额度", "countdownWindow": "右侧倒计时"}
-
-
 def selected_window(preferences, key, quota):
-    selected = preferences.stringForKey_(key)
-    if selected in WINDOWS:
-        return selected
-    # Before the first explicit choice, use whichever window is available.
-    return "five_hour" if quota and quota.five_hour is not None else "weekly"
+    return choose_window(preferences.stringForKey_(key), quota)
 
 
 def status_image(window, now, choice="five_hour"):

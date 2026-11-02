@@ -1,5 +1,18 @@
 # Validation record
 
+## Ubuntu interface parity — 2026-11-02
+
+Environment: Ubuntu 22.04 ARM64 in OrbStack, system Python 3.10, GTK 3.24.33, Ayatana AppIndicator 0.5.90, Cairo, Xvfb and Openbox. The host development machine is macOS.
+
+- The Ubuntu interface now shares selection and quota-validity rules with macOS. It uses a symbolic quota ring, bold native-font outlines, H/W markers, a dot-separated countdown and a GTK details panel with two independent weekly/five-hour button rows.
+- All 63 discovered checks passed across the two platforms: Ubuntu ran 52 and skipped 11 AppKit checks; macOS ran 54 and skipped 9 native GTK checks.
+- Linux checks run under D-Bus and Xvfb, including real GTK button callbacks, persistence and failed writes, weekly-only and missing selected windows, zero versus expired data, errors, stale data and menu activation. Native symbolic loading checks that the ring remains hollow, keeps both glyph regions and preserves the progress track's lower opacity. Plain SVG loading alone did not catch GTK's symbolic recoloring behavior.
+- Light and dark Adwaita renders were inspected under Openbox. Header and countdown rows align vertically; panel visibility was confirmed with a window manager. Screenshots use explicitly labelled demo data, not account data.
+- The Ubuntu 22.04 tray API exposes a menu rather than arbitrary GTK controls. Open the native panel via “打开额度面板”, or middle-click where the desktop supports secondary activation. Newer Ayatana primary activation is connected when available. A full GNOME Shell / Wayland session and its exact tray sizing/spacing have not been visually validated here.
+- The DEB was built, installed in the Ubuntu VM without optional GNOME packages, and its installed launcher passed `--demo --once` and the GTK smoke test. Both bundled symbolic icons were included. CI installs Cairo and the SVG loader and runs native GTK tests under Xvfb.
+- Ordinary startup continues to use the existing real Codex JSON-RPC controller. No Linux account credentials were copied to the VM; live account access in that VM is not claimed.
+
+
 ## Native macOS interface — 2026-11-02
 
 Environment: macOS, Homebrew Python 3.13.4, project-local virtual environment, PyObjC 13.0.
