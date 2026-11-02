@@ -1,191 +1,117 @@
 # Codex Quota Bar
 
-让 Codex 剩余额度常驻 **macOS 菜单栏 / Ubuntu 顶部面板**。数据来自本机已登录的 Codex CLI，无需 API Key，不发送提示词、不触发模型推理。
+### Codex 还剩多少，抬眼就知道。
 
-## macOS 原生圆环界面
+把 **Codex 剩余额度与重置倒计时**放到 macOS 菜单栏或 Ubuntu 顶部面板。开始一轮重构前看余量，安排下一段工作时看倒计时——一个小圆环，让你对接下来的工作心里有数。
 
-![macOS 菜单栏演示](docs/images/macos-menubar.png)
+沿用本机 Codex CLI 的 ChatGPT 登录，无需配置 API Key。打开后，它就安静地待在屏幕上方，自动更新。
 
-- **额度圆环**：圆环表示剩余额度，中央显示数值（省略 `%`），底部 `H` 表示五小时额度、`W` 表示周额度。圆环和文字加粗，自动适配系统明暗外观。
-- **右侧倒计时**：用 `·` 连接圆环与重置倒计时，直接显示时间文字。
-- **原生详情面板**：点击菜单栏图标查看账号返回的额度、进度条、重置时间和刷新状态。使用 AppKit 系统控件与半透明材质，无浏览器窗口、无 Electron、无 Dock 图标。
-- **独立选择**：“图标额度”和“右侧倒计时”各占一行，标签后并排显示 **每周 / 五小时** 两个按钮。点击直接选择，选中状态互斥；两项设置互不影响，自动保存。
+**[下载 v0.1.5](https://github.com/ZhaoOyu/codex-quota-bar/releases/tag/v0.1.5)** · [快速上手](#快速上手) · [遇到问题](https://github.com/ZhaoOyu/codex-quota-bar/issues)
 
-<img src="docs/images/macos-panel.png" alt="macOS 原生详情面板演示" width="340">
+![macOS 菜单栏中的额度圆环和重置倒计时](docs/images/macos-menubar.png)
 
-以上为**演示数据的原生组件渲染**，不是账户截图；实际面板的半透明效果取决于系统外观和桌面背景。macOS / Ubuntu 圆环界面从 **v0.1.5** 起包含在 Release 安装包中，也可从源码运行。
+## 一眼看余量，按自己的节奏安排工作
 
-首次使用会优先选择可用的五小时窗口，否则选择周窗口。手动选择后不再自动切换：例如账号只返回周额度，但选择了“五小时”，对应位置会显示未知值，而不会替换成周额度。详情面板只在账号返回五小时窗口时显示该区域。
+- **一个圆环，读懂剩余。** 弧线表示剩余比例，中间是具体数值，底部 `H` / `W` 区分五小时与周额度。数值省略百分号，让菜单栏更紧凑。
+- **两种额度，各看所需。** 圆环与倒计时可以独立选择：例如圆环看每周余量，右侧看五小时重置时间。点击“每周 / 五小时”按钮即可切换，选择会自动保存。
+- **点开细看，收起继续。** 详情面板集中展示剩余额度、进度条、准确重置时间和更新状态，也能直接打开 Codex 用量页面。
+- **融入你熟悉的桌面。** macOS 和 Ubuntu 都使用原生界面，适配系统明暗外观。额度约每分钟自动刷新，倒计时每秒更新；还可以开启“登录系统时启动”。
 
-## 功能与数据规则
+## 在你的桌面上
 
-- 每次查询完成后等待 60 秒自动刷新；每秒更新倒计时，也可手动刷新。
-- 支持登录系统时启动，默认关闭，在面板或菜单中开启。
-- 只把服务器返回的 **300 分钟 / 10080 分钟** 窗口标为五小时 / 周额度，不按套餐名或字段顺序推测。
-- 数值表示**剩余比例**，向下取整；有数据的 `0` 表示额度耗尽，未知数据不会显示成 `0` 或 `100`。
-- 倒计时分钟向上取整。周倒计时超过 24 小时显示天和小时，省略不足一小时的部分；否则显示 `小时:分钟`。五小时倒计时使用 `小时:分钟`。
-- 重置时间已到时显示“待刷新”，等待服务器返回新数据，不自动假定额度恢复。
-- 请求失败后清空旧额度，避免切换账号后继续显示旧账号数据；上次成功数据超过 3 分钟时标记过期。
-- 不保存、不输出账号令牌。显示偏好保存在 macOS 用户偏好设置或 Ubuntu 的 `$XDG_CONFIG_HOME/codex-quota-bar/preferences.json`（默认 `~/.config/codex-quota-bar/preferences.json`）中；仅保存两个窗口选择，不含账号信息。开机启动配置保存在当前用户目录中。
+| macOS | Ubuntu |
+| --- | --- |
+| <img src="docs/images/macos-panel.png" alt="macOS 额度详情与独立切换按钮" width="340"> | <img src="docs/images/ubuntu-panel.png" alt="Ubuntu 额度详情与独立切换按钮" width="360"> |
 
-## 准备 Codex 登录
+*图中数值均为演示数据。实际使用时显示你的账户额度；界面外观随系统主题而变化。*
 
-需要 [Codex CLI](https://developers.openai.com/codex/cli)，并使用 ChatGPT 账号登录：
+## 快速上手
+
+### 1. 准备好 Codex 登录
+
+需要在本机安装 [Codex CLI](https://developers.openai.com/codex/cli)，并使用 **ChatGPT 账号**登录。已经登录的用户可以直接下载应用；还没登录时，在终端运行：
 
 ```bash
-npm install -g @openai/codex
 codex login
 ```
 
-纯 API Key 登录不提供此工具需要的 ChatGPT 套餐额度。登录完成后可先运行 `python -m codex_quota_bar --once` 检查连接。
+仅使用 API Key 的登录方式不提供本工具所需的 ChatGPT 套餐额度。
 
-## macOS 安装与运行
+### 2. 下载适合你的版本
 
-当前原生界面需要 **macOS 11+、Python 3.10+**。本地已验证环境见 [VALIDATION.md](VALIDATION.md)；较早系统版本仍需自行验证。
+| 你的电脑 | 下载 |
+| --- | --- |
+| Mac · Apple Silicon（M 系列芯片） | [下载 Apple Silicon 版](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.5/codex-quota-bar-macos-arm64.zip) |
+| Mac · Intel 芯片 | [下载 Intel 版](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.5/codex-quota-bar-macos-x86_64.zip) |
+| Ubuntu 22.04 及以上 | [下载 Ubuntu 安装包](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.5/codex-quota-bar_0.1.5_all.deb) |
 
-从源码运行：
+**macOS：**解压 ZIP，将 **Codex Quota Bar.app** 拖入“应用程序”，然后双击打开。应用出现在菜单栏，不显示 Dock 图标；无需另外安装 Python。
 
-```bash
-git clone https://github.com/ZhaoOyu/codex-quota-bar.git
-cd codex-quota-bar
-python3 --version  # 确认是 3.10 或更新版本
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -e .
-python -m codex_quota_bar
-```
+当前 macOS 安装包未使用 Developer ID 签名或公证。如果系统阻止打开，请先核验发布页的 `SHA256SUMS.txt`，再前往“系统设置 → 隐私与安全性”批准打开。
 
-如果默认 `python3` 指向旧版 Anaconda，请使用已安装的 Python 3.10+ 创建虚拟环境，例如 Apple Silicon 上的 `/opt/homebrew/bin/python3 -m venv .venv`。后续运行项目时使用 `.venv/bin/python`，避免混用解释器。
-
-普通启动读取真实数据；`python -m codex_quota_bar --demo` 使用明确标记的固定演示数据。
-
-### 预构建安装包
-
-[Releases](https://github.com/ZhaoOyu/codex-quota-bar/releases) 提供安装包，**v0.1.5** 包含本文所示的新界面。Apple Silicon 选 `arm64` ZIP，Intel 选 `x86_64` ZIP；解压后拖到“应用程序”，再双击启动。请下载 v0.1.5 或更新版本；更早版本的界面以对应发布说明为准。
-
-预构建包在 macOS 14 / macOS 15 Intel 上构建。当前构建未使用 Apple Developer ID 签名或公证；若系统阻止打开，请先核验 Release 附带的 SHA256SUMS，再在“系统设置 → 隐私与安全性”批准此应用，不要关闭全局安全检查。
-
-### 找不到 Codex 或无法读取额度
-
-Finder 不继承终端 PATH。应用会检查 PATH、Homebrew、`~/.npm-global/bin`、`~/.local/bin`、Volta、nvm 和 Codex.app 的常见位置，并为 Codex 子进程补充 Node 搜索路径。
-
-自定义 CLI 路径：
-
-```bash
-python -m codex_quota_bar --codex /absolute/path/to/codex
-# 或
-CODEX_QUOTA_CODEX_BIN=/absolute/path/to/codex python -m codex_quota_bar
-```
-
-nvm 优先使用当前 PATH；没有找到 Codex 时才按版本从新到旧查找。需要固定版本时请使用 `--codex`。
-
-若应用无法读取，先退出菜单栏应用，再从已能运行 Codex 的终端启动：
-
-```bash
-"/Applications/Codex Quota Bar.app/Contents/MacOS/Codex Quota Bar" --codex "$(command -v codex)"
-```
-
-也可检查 `codex --version`、`codex login status`，并运行 `codex app-server` 查看启动错误。服务正常时会等待输入，可按 Ctrl+C 退出。应用仅显示分类后的错误提示，不输出服务端原始日志。
-
-## Ubuntu 安装与运行
-
-目标环境：Ubuntu 22.04+、Python 3.10+、GNOME + AppIndicator。Ubuntu 现在使用与 macOS 一致的显示结构：
-
-- 顶部为**加粗额度圆环 + 中央数值 + 底部 H/W**，省略百分号；右侧用 `·` 连接所选窗口的重置倒计时，不显示倒计时图标。
-- GTK 原生详情面板提供额度、进度条、重置时间、刷新状态，以及独立的“图标额度”和“右侧倒计时”两组 **每周 / 五小时** 按钮。
-- 标题和倒计时行的图标、文字、数值垂直居中；控件跟随 GTK 主题，圆环使用 symbolic SVG。字体、颜色、托盘大小和间距由桌面主题及 AppIndicator 扩展决定，不使用 macOS 的半透明材质。
-- Ubuntu 22.04 中点击托盘图标后选择 **打开额度面板**；支持的桌面也可中键直接打开。新版 Ayatana 若提供主激活信号，则同时支持直接打开。按 Esc 或点击其他窗口关闭面板。
-
-<img src="docs/images/ubuntu-panel.png" alt="Ubuntu GTK 原生详情面板演示" width="360">
-
-图为 Ubuntu 22.04、GTK 3 / Adwaita 浅色主题下的演示数据截图。与 macOS 共用额度选择和有效性规则，正常启动读取真实数据。没有五小时窗口时隐藏该详情区域；手动选中缺失窗口时保留选择并显示未知值。
-
-从 [Releases](https://github.com/ZhaoOyu/codex-quota-bar/releases) 下载 `.deb` 后安装，例如：
+**Ubuntu：**在下载目录打开终端，运行：
 
 ```bash
 sudo apt install ./codex-quota-bar_0.1.5_all.deb
-codex-quota-bar
 ```
 
-也可以在应用列表中打开 **Codex Quota Bar**。安装包依赖系统 GTK / Ayatana 组件，并建议安装 GNOME AppIndicator 扩展。若顶部没有图标，在“扩展”应用中启用 **Ubuntu AppIndicators**，再重新登录桌面。非 GNOME 桌面对文本标签的支持可能不同。
+安装后，在应用列表中打开 **Codex Quota Bar**。GNOME 桌面需要启用 **Ubuntu AppIndicators** 扩展，才能显示顶部图标和倒计时。
 
-从源码运行（先克隆仓库并进入目录）：
+发布包已在 macOS 14（Apple Silicon）、macOS 15（Intel）和 Ubuntu 22.04 的自动构建环境中验证。更早的 macOS 版本尚未完整验证。
 
-```bash
-sudo apt install python3-gi python3-cairo librsvg2-common gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 gnome-shell-extension-appindicator
-/usr/bin/python3 -m codex_quota_bar
-```
+### 3. 选择你最关心的信息
 
-Ubuntu 请用系统 Python；普通虚拟环境通常无法导入 apt 安装的 `gi`。需要虚拟环境时，请使用 `python3 -m venv --system-site-packages .venv`。
+打开详情面板：macOS 直接点击菜单栏图标；Ubuntu 点击托盘图标后选择 **打开额度面板**，支持的桌面也可中键直接打开。
 
-## 状态说明
-
-| 状态 | macOS / Ubuntu 圆环界面 |
+| 设置 | 显示在哪里 |
 | --- | --- |
-| 正常 | 圆环内数值 + 底部 `H/W`，右侧为所选窗口倒计时 |
-| 未返回所选额度 | 虚线圆环、`--` |
-| 未返回重置时间 | `--:--` |
-| 重置时间已到 | 虚线圆环、`--`，所选倒计时为“待刷新” |
-| 查询失败 | 清空额度、显示 `!`，面板内有错误提示 |
-| 数据超过 3 分钟未更新 | 倒计时前显示 `!`，面板提示过期 |
-| 演示模式 | 状态栏和面板带“演示”标记 |
+| **图标额度** → 每周 / 五小时 | 圆环、中央数值和底部 `W` / `H` |
+| **右侧倒计时** → 每周 / 五小时 | 圆环右侧的重置时间，以及面板中的重置倒计时 |
 
-命令行 `--once` 保留简洁的文字格式，例如 `5h 78% · W 62% · 02:34`；没有五小时窗口时显示周额度及其倒计时。
+首次打开时优先显示可用的五小时额度；账户未提供该额度时显示周额度。你手动选择后，应用会记住你的选择。
 
-应用每次刷新启动短生命周期的 `codex app-server` 子进程，通过 stdio 完成初始化并调用 `account/rateLimits/read`，随后关闭进程。网络操作在后台线程中运行，不阻塞界面。
+## 常见问题
 
-应用自身不读写认证文件；Codex CLI 仍按其自身配置访问网络、登录凭据和本地运行目录，需要确保其用户目录可写。
+**圆环里的 `78` 是什么意思？**
 
-这是独立开源工具，与 OpenAI 无隶属关系。
+表示所选额度还剩 78%。`H` 代表五小时额度，`W` 代表周额度。右侧时间表示距离该处所选额度重置还有多久；超过一天的周倒计时会显示为“几天几小时”。
 
-## 检查与开发
+**为什么看不到五小时额度？**
 
-在已安装依赖的 Python 环境中运行：
+应用只展示账户实际返回的数据。账户未提供五小时额度时，详情面板会隐藏该区域；如果你手动选择显示五小时额度，对应位置会显示未知值，不会换成其他额度。
 
-```bash
-python -m codex_quota_bar --once           # 读取真实数据，不启动界面
-python -m codex_quota_bar --once --json    # 输出额度 JSON，无令牌
-python -m codex_quota_bar --demo           # 原生界面演示
-python -m codex_quota_bar --demo --smoke-test  # 展开原生面板，3 秒后退出
-python -m unittest discover -s tests -v
-```
+**`--`、`待刷新` 或 `!` 代表什么？**
 
-测试无需账号和网络。macOS 的 AppKit 测试需要可用的桌面会话；Linux 自动跳过这部分测试。GTK 交互测试需要 Linux 图形会话，macOS 自动跳过；无显示环境时可使用 `dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -v`（先安装 `xvfb dbus-x11`）。测试覆盖额度解析、倒计时、错误脱敏、真实子进程 JSON-RPC、超时清理、后台状态恢复、启动配置，以及原生按钮直接选择、选中状态与偏好保存。
+| 显示 | 含义与处理方式 |
+| --- | --- |
+| `--` / `--:--` | 暂无所选额度或重置时间，可查看另一种额度或稍后刷新 |
+| `待刷新` | 已到重置时间，正在等待新的额度数据；也可点击“刷新” |
+| `!` | 查询失败或数据未及时更新，请打开详情面板查看提示 |
 
-macOS 本机打包：
+应用不会在倒计时结束时直接假定额度已恢复。以刷新后返回的数据为准。
 
-```bash
-python -m pip install . pyinstaller==6.22.3
-python -m PyInstaller --noconfirm packaging/macos.spec
-```
+**应用提示无法读取额度怎么办？**
 
-Ubuntu 打包：
+先确认终端中的 `codex login status` 显示已登录 ChatGPT 账号；必要时重新运行 `codex login`，再点击面板中的“刷新”。如果仍有问题，可查看[高级排查](docs/DEVELOPMENT.md#找不到-codex-或无法读取额度)或[提交问题](https://github.com/ZhaoOyu/codex-quota-bar/issues)。
 
-```bash
-python3 scripts/build_deb.py  # 输出 dist/*.deb
-```
+**Ubuntu 顶部没有图标？**
 
-[GitHub Actions](https://github.com/ZhaoOyu/codex-quota-bar/actions) 会运行测试、原生界面启动检查、安装包构建和打包后验证。演示模式不能证明真实账户连接成功，发布前应在已登录的桌面上额外运行 `--once` 并检查界面。当前及历史验证记录见 [VALIDATION.md](VALIDATION.md)。
+在“扩展”应用中启用 **Ubuntu AppIndicators**，必要时重新登录桌面。不同桌面环境对图标、文字和间距的显示可能有所不同。
 
-## 卸载
+**它会发送提示词或保存我的登录令牌吗？**
 
-先关闭“登录系统时启动”，再退出应用。Ubuntu 使用 `sudo apt remove codex-quota-bar`；macOS 删除应用即可。
+额度查询沿用本机 Codex CLI 的登录状态，不发送提示词、不触发模型推理。本工具不另行保存或输出账号令牌，登录凭据仍由 Codex CLI 管理。
 
-若应用已删除，可手动移除当前用户的启动配置：
+**如何更新或卸载？**
 
-- Ubuntu：`~/.config/autostart/codex-quota-bar.desktop`
-- macOS：`~/Library/LaunchAgents/io.github.codex-quota-bar.plist`
+更新时先退出应用，再从 [Releases](https://github.com/ZhaoOyu/codex-quota-bar/releases/latest) 下载对应版本：macOS 替换“应用程序”中的旧应用，Ubuntu 用 `sudo apt install ./下载的文件名.deb` 安装，然后重新打开。
 
-Ubuntu 的显示选择保存在 `~/.config/codex-quota-bar/preferences.json`（设置了 `XDG_CONFIG_HOME` 时使用对应目录）；退出应用后删除该文件即可重置。
-
-macOS 的显示选择保存在 `io.github.codex-quota-bar` 偏好域。需要同时清除选择时，退出应用后运行：
-
-```bash
-defaults delete io.github.codex-quota-bar
-```
-
-[MIT License](LICENSE).
+卸载前关闭“登录系统时启动”并退出应用。macOS 删除应用即可；Ubuntu 运行 `sudo apt remove codex-quota-bar`。需要一并清理显示偏好时，参见[配置清理](docs/DEVELOPMENT.md#配置清理)。
 
 ---
 
-**English:** A lightweight native quota monitor for macOS and Ubuntu. On both platforms, a bold quota ring shows a remaining value with an H/W marker and a reset countdown; a native panel provides details and independent weekly/five-hour selection buttons. Ubuntu uses GTK and a symbolic SVG indicator; open the panel from the tray menu or with middle-click where supported. Requires the Codex CLI signed in with a ChatGPT account. Performs no inference and stores no account tokens. The new UI is included in v0.1.5 and later releases, and is also available from source. macOS packages are unsigned and not notarized.
+[更新记录](https://github.com/ZhaoOyu/codex-quota-bar/releases) · [反馈问题](https://github.com/ZhaoOyu/codex-quota-bar/issues) · [源码运行与开发](docs/DEVELOPMENT.md) · [MIT 开源许可](LICENSE)
+
+这是独立开源工具，与 OpenAI 无隶属关系。
+
+**English:** Your Codex quota, a glance away. A native menu bar companion for macOS and Ubuntu: see remaining usage and reset time without leaving your work, and choose weekly or five-hour information independently. Uses your existing Codex CLI ChatGPT login. No prompts, no inference.
