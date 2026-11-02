@@ -3,7 +3,7 @@ from pathlib import Path
 
 root = Path(SPECPATH).parent
 a = Analysis([str(root / 'launcher.py')], pathex=[str(root)],
-             binaries=[], datas=[], hiddenimports=['rumps', 'AppKit', 'Foundation'],
+             binaries=[], datas=[], hiddenimports=['AppKit', 'Foundation'],
              hookspath=[], hooksconfig={}, runtime_hooks=[],
              excludes=['gi', 'tkinter'], noarchive=False)
 pyz = PYZ(a.pure)

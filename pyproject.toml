@@ -9,7 +9,7 @@ description = "Codex five-hour and weekly quota in your macOS or Ubuntu menu bar
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
-dependencies = ["rumps==0.4.0; sys_platform == 'darwin'"]
+dependencies = ["pyobjc-framework-Cocoa>=10,<14; sys_platform == 'darwin'"]
 
 [project.scripts]
 codex-quota-bar = "codex_quota_bar.__main__:main"
