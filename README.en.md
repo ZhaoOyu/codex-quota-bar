@@ -22,3 +22,8 @@ On **macOS 13 or later**, unzip the download, drag Codex Quota Bar into Applicat
 [Release notes](https://github.com/ZhaoOyu/codex-quota-bar/releases/tag/v0.1.7) · [Report an issue](https://github.com/ZhaoOyu/codex-quota-bar/issues)
 
 The interface follows your system language by default. Open **Language** at the bottom of the panel to switch to **简体中文** or **English**.
+
+## More menu bar apps
+
+- [Mingdu](https://github.com/ZhaoOyu/mingdu/blob/main/README.en.md) · Adjust the brightness of your built-in and external displays separately, or apply a night, everyday, or bright preset to all of them at once.
+- [Fengdu](https://github.com/ZhaoOyu/fengdu/blob/main/README.en.md) · Monitor chip temperature and fan speeds on an Apple Silicon Mac with a fan. Set a target RPM or choose a fan curve that responds to temperature.

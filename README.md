@@ -27,3 +27,8 @@
 [版本与校验文件](https://github.com/ZhaoOyu/codex-quota-bar/releases/tag/v0.1.7) · [使用问题](https://github.com/ZhaoOyu/codex-quota-bar/issues)
 
 应用默认跟随系统语言。在面板底部打开「语言」，可随时选择「简体中文」或「English」。
+
+## 更多菜单栏工具
+
+- [明度](https://github.com/ZhaoOyu/mingdu) · 分别调节内置屏幕和外接显示器的亮度，也可以用夜间、日常、明亮三档预设一次调好所有屏幕。
+- [风度](https://github.com/ZhaoOyu/fengdu) · 在配有风扇的 Apple 芯片 Mac 上查看芯片温度和风扇转速，手动指定转速或设置随温度提速的曲线。
