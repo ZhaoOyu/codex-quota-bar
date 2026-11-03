@@ -10,7 +10,8 @@ from Foundation import NSObject, NSTimer, NSRunLoop, NSRunLoopCommonModes, NSUse
 from . import __version__, startup
 from .client import UsageError
 from .model import countdown, remaining_text, reset_text
-from .display import WINDOWS, WINDOW_LABELS, CONTROL_LABELS, choose_window, fraction
+from .track import outline
+from .display import APPEARANCE, appearance, track_reading, WINDOWS, WINDOW_LABELS, CONTROL_LABELS, choose_window, fraction
 
 
 def symbol(name, description):
@@ -30,14 +31,14 @@ def app_preferences():
     return NSUserDefaults.alloc().initWithSuiteName_(domain)
 
 
-def status_image(window, now, choice="five_hour"):
+def status_image(window, now, choice="five_hour", show_separator=True):
     """Larger quota ring completed by a bottom H/W marker and a middle dot."""
-    image = A.NSImage.alloc().initWithSize_((35, 24))
+    image = A.NSImage.alloc().initWithSize_((35 if show_separator else 28, 24))
     image.lockFocus()
     try:
         value = fraction(window, now)
         # Leave only the letter-sized bottom gap; round caps meet the H/W edges.
-        gap = 44 if choice == "five_hour" else 56
+        gap = 54 if choice == "five_hour" else 68
         arc = 360 - gap
         for alpha, sweep in ((0.28, arc), (1.0, arc * value if value is not None else 0)):
             if sweep <= 0:
@@ -52,22 +53,52 @@ def status_image(window, now, choice="five_hour"):
                 (14, 12), 10.7, 270 - gap / 2, 270 - gap / 2 - sweep, True)
             path.stroke()
         text = remaining_text(window, now).removesuffix("%") if value is not None else "--"
+        font = A.NSFont.monospacedDigitSystemFontOfSize_weight_(9 if len(text) > 2 else 10.5, A.NSFontWeightBold)
         label = NSAttributedString.alloc().initWithString_attributes_(text, {
-            A.NSFontAttributeName: A.NSFont.monospacedDigitSystemFontOfSize_weight_(9 if len(text) > 2 else 10.5, A.NSFontWeightBold),
+            A.NSFontAttributeName: font,
             A.NSForegroundColorAttributeName: A.NSColor.blackColor(),
         })
-        label.drawAtPoint_((14 - label.size().width / 2, 7))
+        label.drawAtPoint_((14 - label.size().width / 2, 8.5))
         marker = NSAttributedString.alloc().initWithString_attributes_(
             "H" if choice == "five_hour" else "W", {
-                A.NSFontAttributeName: A.NSFont.systemFontOfSize_weight_(8.5, A.NSFontWeightBold),
+                A.NSFontAttributeName: font,
                 A.NSForegroundColorAttributeName: A.NSColor.blackColor(),
             })
-        marker.drawAtPoint_((14 - marker.size().width / 2, 0))
+        marker.drawAtPoint_((14 - marker.size().width / 2, -1))
         separator = NSAttributedString.alloc().initWithString_attributes_("·", {
             A.NSFontAttributeName: A.NSFont.systemFontOfSize_(13),
             A.NSForegroundColorAttributeName: A.NSColor.blackColor(),
         })
-        separator.drawAtPoint_((32 - separator.size().width / 2, 4))
+        if show_separator:
+            separator.drawAtPoint_((32 - separator.size().width / 2, 4))
+    finally:
+        image.unlockFocus()
+    image.setTemplate_(True)
+    return image
+
+
+def track_image(reading, value):
+    label = NSAttributedString.alloc().initWithString_attributes_(reading, {
+        A.NSFontAttributeName: A.NSFont.monospacedDigitSystemFontOfSize_weight_(11, A.NSFontWeightSemibold),
+        A.NSForegroundColorAttributeName: A.NSColor.blackColor(),
+    })
+    width = max(34, int(label.size().width + 19))
+    image = A.NSImage.alloc().initWithSize_((width, 24))
+    image.lockFocus()
+    try:
+        for part, alpha in ((1, 0.28), (value or 0, 1)):
+            points = outline(width, part)
+            if not points:
+                continue
+            path = A.NSBezierPath.bezierPath()
+            x, y = points[0]
+            path.moveToPoint_((x, 24-y))
+            for x, y in points[1:]:
+                path.lineToPoint_((x, 24-y))
+            path.closePath()
+            A.NSColor.blackColor().colorWithAlphaComponent_(alpha).setFill()
+            path.fill()
+        label.drawAtPoint_(((width-label.size().width)/2, (24-label.size().height)/2))
     finally:
         image.unlockFocus()
     image.setTemplate_(True)
@@ -137,7 +168,7 @@ class QuotaPanel(NSObject):
 
     @objc.python_method
     def build(self, show_five):
-        self.height = 490 if show_five else 402
+        self.height = 562 if show_five else 474
         self.content = A.NSVisualEffectView.alloc().initWithFrame_(((0, 0), (340, self.height)))
         self.content.setMaterial_(A.NSVisualEffectMaterialPopover)
         self.content.setBlendingMode_(A.NSVisualEffectBlendingModeBehindWindow)
@@ -194,6 +225,19 @@ class QuotaPanel(NSObject):
                 control.setAccessibilityLabel_(CONTROL_LABELS[key] + "：" + WINDOW_LABELS[choice])
                 self.content.addSubview_(control)
                 self.selectors[key][choice] = control
+        self.appearance_buttons = {}
+        for index, (key, (label, options)) in enumerate(APPEARANCE.items()):
+            y = top + 124 + 36*index
+            self.text(label, 20, y+4, 145, 12)
+            for j, (choice, title) in enumerate(options.items()):
+                control = A.NSButton.buttonWithTitle_target_action_(title, self, "appearanceChoice:")
+                control.setFrame_(self.rect(174+j*76,y,72,28))
+                control.setButtonType_(A.NSPushOnPushOffButton)
+                control.setBezelStyle_(A.NSBezelStyleRounded)
+                control.setAccessibilityLabel_(label+"："+title)
+                self.content.addSubview_(control)
+                self.appearance_buttons[(key,choice)] = control
+        top += 72
         top += 36
         self.message = self.text("正在读取…", 20, top + 94, 300, 11, secondary=True, height=34)
         self.refresh_button = self.action("刷新", "arrow.clockwise", "refresh:", 18, top + 134, 88)
@@ -226,13 +270,24 @@ class QuotaPanel(NSObject):
         for preference, selection in (("quotaWindow", quota_choice), ("countdownWindow", time_choice)):
             for choice, control in self.selectors[preference].items():
                 control.setState_(A.NSControlStateValueOn if choice == selection else A.NSControlStateValueOff)
-        key = (quota_choice, quota_window, fraction(quota_window, now))
-        if key != self.icon_key:
-            self.button.setImage_(status_image(quota_window, now, quota_choice))
-            self.icon_key = key
+        style = appearance("indicatorStyle",self.preferences.stringForKey_("indicatorStyle"))
+        show_time = appearance("timeDisplay",self.preferences.stringForKey_("timeDisplay")) == "shown"
+        for (key, choice), control in self.appearance_buttons.items():
+            control.setState_(int(choice == appearance(key,self.preferences.stringForKey_(key))))
         time_text = countdown(time_window, now, show_days=time_choice == "weekly")
+        shown_time = time_text if show_time else ""
+        value = fraction(quota_window, now)
+        key = (style, show_time, quota_choice, quota_window, value, shown_time if style == "track" else "")
+        if key != self.icon_key:
+            image = (track_image(track_reading(quota_window,now,quota_choice,shown_time),value) if style == "track"
+                     else status_image(quota_window,now,quota_choice,show_time))
+            self.button.setImage_(image)
+            self.icon_key = key
         warning = bool(self.controller.error) or bool(quota and now - quota.fetched_at > 180)
-        self.button.setTitle_(("! " if warning else "") + time_text + (" [演示]" if self.controller.demo else ""))
+        suffix = " ".join(x for x in ("!" if warning else "", shown_time if style == "ring" else "",
+                                      "[演示]" if self.controller.demo else "") if x)
+        self.button.setTitle_(suffix)
+        self.button.setImagePosition_(A.NSImageLeft if suffix else A.NSImageOnly)
         summary = ("图标：" + WINDOW_LABELS[quota_choice] + "剩余 " + remaining_text(quota_window, now)
                    + "；倒计时：" + WINDOW_LABELS[time_choice] + " " + time_text)
         self.button.setToolTip_("Codex 额度\n" + summary + "\n" + title)
@@ -250,6 +305,13 @@ class QuotaPanel(NSObject):
                                      "正在刷新额度…" if self.controller.busy else details[-1])
         self.message.setToolTip_(self.message.stringValue())
         self.refresh_button.setEnabled_(not self.controller.busy and not self.controller.demo)
+
+    def appearanceChoice_(self, sender):
+        for (key, choice), control in self.appearance_buttons.items():
+            if sender == control:
+                self.preferences.setObject_forKey_(choice, key)
+                self.tick_(None)
+                return
 
     def quotaChoice_(self, sender):
         self.preferences.setObject_forKey_(WINDOWS[sender.tag()], "quotaWindow")

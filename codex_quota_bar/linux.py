@@ -21,8 +21,8 @@ from gi.repository import Gdk, GLib, GObject, Gtk
 
 from . import __version__, startup
 from .client import UsageError
-from .display import CONTROL_LABELS, WINDOW_LABELS, choose_window, fraction
-from .linux_display import Preferences, status_svg
+from .display import APPEARANCE, appearance, track_reading, CONTROL_LABELS, WINDOW_LABELS, choose_window, fraction
+from .linux_display import Preferences, status_svg, track_svg
 from .model import countdown, remaining_text, reset_text
 
 
@@ -166,6 +166,31 @@ class QuotaPanel:
                 row.pack_start(button, False, False, 0)
                 self.selectors[key][choice] = button
             root.pack_start(row, False, False, 0)
+        self.appearance_buttons = {}
+        for key, (label, options) in APPEARANCE.items():
+            if key == "timeDisplay":
+                continue
+            row = Gtk.Box(spacing=6)
+            row.pack_start(self.label(label), True, True, 0)
+            for choice, title in options.items():
+                button = Gtk.ToggleButton(label=title)
+                button.set_size_request(72, 30)
+                button.get_accessible().set_name(label+"："+title)
+                button.connect("clicked",self.select,key,choice)
+                row.pack_start(button,False,False,0)
+                self.appearance_buttons[key,choice] = button
+            root.pack_start(row,False,False,0)
+        row = Gtk.Box(spacing=6)
+        row.pack_start(self.label("显示内容"), True, True, 0)
+        self.part_buttons = {}
+        for bit, label in ((1, "额度数值"), (2, "倒计时")):
+            button = Gtk.ToggleButton(label=label)
+            button.get_accessible().set_name(label)
+            button.set_size_request(72, 30)
+            button.connect("clicked", self.toggle_part, bit)
+            row.pack_start(button, False, False, 0)
+            self.part_buttons[bit] = button
+        root.pack_start(row, False, False, 0)
         self.message = self.label("正在读取…", "detail")
         self.message.get_style_context().add_class("dim-label")
         self.message.set_line_wrap(True)
@@ -205,7 +230,28 @@ class QuotaPanel:
                 button.handler_block_by_func(self.select)
                 button.set_active(choice == selection)
                 button.handler_unblock_by_func(self.select)
-        svg = status_svg(quota_window, now, quota_choice, text_outline)
+        style = appearance("indicatorStyle", self.preferences.get("indicatorStyle"))
+        parts = self.visible_parts(style)
+        show_time = bool(parts & 2)
+        for (name, choice), button in self.appearance_buttons.items():
+            button.handler_block_by_func(self.select)
+            button.set_active(choice == appearance(name, self.preferences.get(name)))
+            button.handler_unblock_by_func(self.select)
+        time_text = countdown(time_window, now, show_days=time_choice == "weekly")
+        amount = track_reading(quota_window, now, quota_choice, "")
+        for bit, button in self.part_buttons.items():
+            button.handler_block_by_func(self.toggle_part)
+            button.set_active(bool(parts & bit))
+            button.set_label(amount if bit == 1 else time_text)
+            button.handler_unblock_by_func(self.toggle_part)
+        if style == "track":
+            reading = " · ".join(text for bit, text in ((1, amount), (2, time_text)) if parts & bit)
+            metric = cairo.Context(cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None))
+            metric.select_font_face("sans-serif",cairo.FONT_SLANT_NORMAL,cairo.FONT_WEIGHT_BOLD)
+            metric.set_font_size(11)
+            svg = track_svg(reading,fraction(quota_window,now),max(34,int(metric.text_extents(reading).width+19)),text_outline)
+        else:
+            svg = status_svg(quota_window, now, quota_choice, text_outline)
         key = hashlib.sha256(svg.encode()).hexdigest()[:16]
         if key != self.icon_key:
             path = Path(self.icons.name) / f"quota-{key}-symbolic.svg"
@@ -218,10 +264,10 @@ class QuotaPanel:
             self.icon_paths.append(path)
             if len(self.icon_paths) > 64:
                 self.icon_paths.pop(0).unlink(missing_ok=True)
-        time_text = countdown(time_window, now, show_days=time_choice == "weekly")
         warning = bool(self.controller.error) or bool(quota and now - quota.fetched_at > 180)
-        self.indicator.set_label("· " + ("! " if warning else "") + time_text
-                                 + (" [演示]" if self.controller.demo else ""), "")
+        self.indicator.set_label(" ".join(x for x in ("·" if show_time and style=="ring" else "",
+                                 "!" if warning else "", time_text if show_time and style=="ring" else "",
+                                 "[演示]" if self.controller.demo else "") if x), "")
         self.indicator.set_title("Codex 额度 · " + title)
         self.header.set_text("Codex 额度 · 演示" if self.controller.demo else "Codex 额度")
         self.sections["five_hour"].set_visible(bool(quota and quota.five_hour is not None))
@@ -247,6 +293,29 @@ class QuotaPanel:
             self.window.resize(*size)
             self.panel_size = size
         return True
+
+    def visible_parts(self, style):
+        ring = 1 if self.preferences.get("timeDisplay") == "hidden" else 3
+        if style == "track":
+            return int(self.preferences.get("trackParts") or ring)
+        return ring
+
+    def toggle_part(self, sender, bit):
+        style = appearance("indicatorStyle", self.preferences.get("indicatorStyle"))
+        next_parts = self.visible_parts(style) ^ bit
+        if style == "ring" and bit == 2:
+            if self.preferences.get("trackParts") is None:
+                try:
+                    self.preferences.set("trackParts", str(self.visible_parts("track")))
+                except OSError:
+                    self.preference_error = "无法保存显示选择，请检查配置目录权限。"
+                    self.tick()
+                    return
+            self.select(sender, "timeDisplay", "shown" if next_parts & 2 else "hidden")
+        elif style == "track" and next_parts:
+            self.select(sender, "trackParts", str(next_parts))
+        else:
+            self.tick()
 
     def select(self, _, key, choice):
         try:

@@ -41,18 +41,36 @@ class NativePanelTests(unittest.TestCase):
         self.assertEqual(self.panel.rows["five_hour"][0].stringValue(), "78%")
         self.assertAlmostEqual(self.panel.rows["weekly"][1].doubleValue(), 62)
 
+    def test_track_and_time_visibility_are_independent(self):
+        from codex_quota_bar.display import track_reading
+        p = self.panel
+        p.appearance_buttons["indicatorStyle","track"].performClick_(None)
+        wide = p.button.image().size().width
+        self.assertIn("02:34", p.reset_value.stringValue())
+        p.appearance_buttons["timeDisplay","hidden"].performClick_(None)
+        self.assertLess(p.button.image().size().width, wide)
+        self.assertEqual(p.button.title(), "[演示]")
+        self.assertEqual(p.reset_value.stringValue(),"02:34")
+        self.assertEqual(track_reading(self.controller.quota.five_hour,time.time(),"five_hour",""), "H 78")
+        p.appearance_buttons["indicatorStyle","ring"].performClick_(None)
+        self.assertEqual(p.button.image().size().width,28)
+        self.assertNotIn("·",p.button.title())
+        p.appearance_buttons["timeDisplay","shown"].performClick_(None)
+        self.assertIn("02:34",p.button.title())
+        self.assertEqual(p.button.image().size().width,35)
+
     def test_weekly_only_resize_and_return(self):
         from codex_quota_bar.model import Quota
         original = self.controller.quota
         self.controller.quota = Quota(None, original.weekly, time.time())
         self.panel.tick_(None)
         self.assertEqual(list(self.panel.rows), ["weekly"])
-        self.assertEqual(self.panel.height, 402)
+        self.assertEqual(self.panel.height, 474)
         self.assertIn("天", self.panel.reset_value.stringValue())
         self.controller.quota = original
         self.panel.tick_(None)
         self.assertEqual(len(self.panel.rows), 2)
-        self.assertEqual(self.panel.height, 490)
+        self.assertEqual(self.panel.height, 562)
 
     def test_error_removes_previous_numbers(self):
         self.controller.demo = False

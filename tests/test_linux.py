@@ -96,6 +96,28 @@ class LinuxPanelTests(unittest.TestCase):
         self.panel.tick()
         self.assertEqual(len(list(icon.parent.iterdir())), 1)
 
+    def test_track_and_hidden_time(self):
+        p = self.panel
+        p.appearance_buttons["indicatorStyle","track"].clicked()
+        full = ET.fromstring(Path(p.indicator.get_icon()).read_text())
+        p.part_buttons[2].clicked()
+        short = ET.fromstring(Path(p.indicator.get_icon()).read_text())
+        self.assertLess(int(short.get("width")),int(full.get("width")))
+        self.assertEqual(p.indicator.get_label(),"[演示]")
+        self.assertEqual(p.reset_value.get_text(),"02:34")
+        self.assertEqual(Preferences(self.preferences.path).get("trackParts"),"1")
+        p.appearance_buttons["indicatorStyle","ring"].clicked()
+        self.assertIn("·", p.indicator.get_label())
+        p.part_buttons[1].clicked()
+        self.assertTrue(p.part_buttons[1].get_active())
+        p.part_buttons[2].clicked()
+        self.assertNotIn("·", p.indicator.get_label())
+        p.appearance_buttons["indicatorStyle","track"].clicked()
+        p.part_buttons[2].clicked()
+        p.part_buttons[1].clicked()
+        p.part_buttons[2].clicked()
+        self.assertEqual(Preferences(self.preferences.path).get("trackParts"), "2")
+
     def test_buttons_independent_exclusive_and_persisted(self):
         buttons = self.panel.selectors
         buttons["quotaWindow"]["weekly"].clicked()

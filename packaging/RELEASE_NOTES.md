@@ -1,25 +1,16 @@
-剩余额度和重置时间，就在你抬眼能看到的地方。
+**v0.1.6 新增跑道显示。** 菜单栏空间紧张时，可以只留一个额度数字，也可以只看距离重置还有多久。
 
-**v0.1.5 带来全新的额度圆环和更顺手的详情面板。** 开始一轮重构前看余量，安排下一段工作时看倒计时，让每一次使用 Codex 都更心中有数。
-
-![菜单栏中的额度圆环与重置倒计时](https://raw.githubusercontent.com/ZhaoOyu/codex-quota-bar/v0.1.5/docs/images/macos-menubar.png)
-
-*图片为演示数据，实际使用时显示你的账户额度。*
-
-## 新版亮点
-
-- **余量一眼看清。** 加粗圆环展示剩余比例，中央显示数值，底部 `H` / `W` 区分五小时与周额度；重置倒计时紧挨圆环，方便随时查看。
-- **你关心什么，就显示什么。** “图标额度”和“右侧倒计时”可以分别选择每周或五小时。例如圆环看周余量，右侧看五小时何时重置。点一下切换，下次打开仍会记住。
-- **macOS 和 Ubuntu，同样顺手。** 两个平台都能在原生详情面板中查看额度、进度条和重置时间，适配系统明暗外观。
-- **修复 Mac 启动问题。** 解决了 macOS 应用启动时可能出现的崩溃。
+- 圆环始终显示额度，旁边的倒计时可以隐藏。切换到跑道后，点击两块预览即可选择数值、倒计时或两者同时显示。
+- 每种样式都会记住选择。五小时的 H、每周的 W 与额度数字同样大，切换样式也能轻松辨认。
+- Mac 使用 Swift 原生面板，设置按钮等宽排列。Ubuntu 用户也能使用跑道和显示预览开关。
 
 ## 选择你的下载
 
 | 你的电脑 | 安装包 |
 | --- | --- |
-| Mac · Apple Silicon（M 系列芯片） | [下载 Apple Silicon 版](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.5/codex-quota-bar-macos-arm64.zip) |
-| Mac · Intel 芯片 | [下载 Intel 版](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.5/codex-quota-bar-macos-x86_64.zip) |
-| Ubuntu 22.04 及以上 | [下载 Ubuntu 版](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.5/codex-quota-bar_0.1.5_all.deb) |
+| Mac · Apple Silicon（M 系列芯片） | [下载 Apple Silicon 版](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.6/codex-quota-bar-macos-arm64.zip) |
+| Mac · Intel 芯片 | [下载 Intel 版](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.6/codex-quota-bar-macos-x86_64.zip) |
+| Ubuntu 22.04 及以上 | [下载 Ubuntu 版](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.6/codex-quota-bar_0.1.6_all.deb) |
 
 ## 几步开始使用
 
@@ -27,12 +18,12 @@
 
 **macOS：**解压 ZIP，将 **Codex Quota Bar.app** 拖入“应用程序”，双击打开后点击菜单栏图标即可。无需另外安装 Python。
 
-当前 macOS 安装包尚未进行 Developer ID 签名或公证。如果系统阻止打开，请先核验 [SHA256 校验文件](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.5/SHA256SUMS.txt)，再到“系统设置 → 隐私与安全性”批准打开。
+当前 macOS 安装包尚未进行 Developer ID 签名或公证。如果系统阻止打开，请先核验 [SHA256 校验文件](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.6/SHA256SUMS.txt)，再到“系统设置 → 隐私与安全性”批准打开。
 
 **Ubuntu：**在下载目录打开终端，运行：
 
 ```bash
-sudo apt install ./codex-quota-bar_0.1.5_all.deb
+sudo apt install ./codex-quota-bar_0.1.6_all.deb
 ```
 
 然后从应用列表打开 **Codex Quota Bar**。GNOME 桌面需启用 **Ubuntu AppIndicators** 扩展；点击顶部图标，选择“打开额度面板”。支持的桌面也可中键直接打开。

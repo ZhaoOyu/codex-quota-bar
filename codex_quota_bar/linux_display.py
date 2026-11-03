@@ -6,7 +6,8 @@ import os
 from pathlib import Path
 import tempfile
 
-from .display import CONTROL_LABELS, WINDOWS, fraction
+from .track import outline
+from .display import APPEARANCE, CONTROL_LABELS, WINDOWS, fraction
 from .model import remaining_text
 
 
@@ -20,13 +21,19 @@ class Preferences:
         except (OSError, ValueError):
             values = {}
         self.values = {key: value for key, value in values.items()
-                       if key in CONTROL_LABELS and value in WINDOWS} if isinstance(values, dict) else {}
+                       if self.valid(key, value)} if isinstance(values, dict) else {}
+
+    @staticmethod
+    def valid(key, value):
+        return isinstance(value, str) and ((key in CONTROL_LABELS and value in WINDOWS)
+                or (key == "trackParts" and value in ("1", "2", "3"))
+                or (key in APPEARANCE and value in APPEARANCE[key][1]))
 
     def get(self, key):
         return self.values.get(key)
 
     def set(self, key, choice):
-        if key not in CONTROL_LABELS or choice not in WINDOWS:
+        if not self.valid(key, choice):
             raise ValueError("Invalid display preference")
         values = dict(self.values, **{key: choice})
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -46,7 +53,7 @@ class Preferences:
 def status_svg(window, now, choice, render_text=None):
     """24px symbolic icon; host panel supplies its native foreground color."""
     value = fraction(window, now)
-    gap = 44 if choice == "five_hour" else 56
+    gap = 54 if choice == "five_hour" else 68
     start = 90 + gap / 2
     arc = 360 - gap
 
@@ -86,4 +93,14 @@ def status_svg(window, now, choice, render_text=None):
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">'
             f'<title>{marker} {text}</title>'
             f'{shapes}<g fill="black" font-family="sans-serif" font-weight="bold" text-anchor="middle">'
-            f'{label(text, 15.2, size)}{label(marker, 23.6, 8.5)}</g></svg>')
+            f'{label(text, 14, size)}{label(marker, 23.6, size)}</g></svg>')
+
+def track_svg(reading, value, width, render_text):
+    shapes = []
+    for part, alpha in ((1, 0.28), (value or 0, 1)):
+        points = outline(width, part)
+        if points:
+            coords = " ".join(f"{x:.2f},{y:.2f}" for x,y in points)
+            shapes.append(f'<polygon points="{coords}" opacity="{alpha}"/>')
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="24" viewBox="0 0 {width} 24">'
+            + "".join(shapes) + render_text(reading,width/2,16,11) + "</svg>")

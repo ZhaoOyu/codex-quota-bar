@@ -6,7 +6,7 @@
 
 沿用本机 Codex CLI 的 ChatGPT 登录，无需配置 API Key。打开后，它就安静地待在屏幕上方，自动更新。
 
-**[下载 v0.1.5](https://github.com/ZhaoOyu/codex-quota-bar/releases/tag/v0.1.5)** · [快速上手](#快速上手) · [遇到问题](https://github.com/ZhaoOyu/codex-quota-bar/issues)
+**[下载 v0.1.6](https://github.com/ZhaoOyu/codex-quota-bar/releases/tag/v0.1.6)** · [快速上手](#快速上手) · [遇到问题](https://github.com/ZhaoOyu/codex-quota-bar/issues)
 
 ![macOS 菜单栏中的额度圆环和重置倒计时](docs/images/macos-menubar.png)
 
@@ -41,9 +41,9 @@ codex login
 
 | 你的电脑 | 下载 |
 | --- | --- |
-| Mac · Apple Silicon（M 系列芯片） | [下载 Apple Silicon 版](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.5/codex-quota-bar-macos-arm64.zip) |
-| Mac · Intel 芯片 | [下载 Intel 版](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.5/codex-quota-bar-macos-x86_64.zip) |
-| Ubuntu 22.04 及以上 | [下载 Ubuntu 安装包](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.5/codex-quota-bar_0.1.5_all.deb) |
+| Mac · Apple Silicon（M 系列芯片） | [下载 Apple Silicon 版](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.6/codex-quota-bar-macos-arm64.zip) |
+| Mac · Intel 芯片 | [下载 Intel 版](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.6/codex-quota-bar-macos-x86_64.zip) |
+| Ubuntu 22.04 及以上 | [下载 Ubuntu 安装包](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.6/codex-quota-bar_0.1.6_all.deb) |
 
 **macOS：**解压 ZIP，将 **Codex Quota Bar.app** 拖入“应用程序”，然后双击打开。应用出现在菜单栏，不显示 Dock 图标；无需另外安装 Python。
 
@@ -52,12 +52,12 @@ codex login
 **Ubuntu：**在下载目录打开终端，运行：
 
 ```bash
-sudo apt install ./codex-quota-bar_0.1.5_all.deb
+sudo apt install ./codex-quota-bar_0.1.6_all.deb
 ```
 
 安装后，在应用列表中打开 **Codex Quota Bar**。GNOME 桌面需要启用 **Ubuntu AppIndicators** 扩展，才能显示顶部图标和倒计时。
 
-发布包已在 macOS 14（Apple Silicon）、macOS 15（Intel）和 Ubuntu 22.04 的自动构建环境中验证。更早的 macOS 版本尚未完整验证。
+Mac 版需要 macOS 13 或更新版本。
 
 ### 3. 选择你最关心的信息
 
@@ -70,14 +70,16 @@ sudo apt install ./codex-quota-bar_0.1.5_all.deb
 
 首次打开时优先显示可用的五小时额度；账户未提供该额度时显示周额度。你手动选择后，应用会记住你的选择。
 
-## 0.1.6 功能预览：给菜单栏多留一点空间
+## 圆环和跑道怎么选
 
 ![跑道预览：五小时额度与倒计时、只看五小时额度、只看周额度](docs/images/track-preview.png)
 
-*图中为演示数据。以下两项设置已在本地 0.1.6 版实现，当前公开下载的 0.1.5 不包含它们。*
+*图中为演示数据。*
 
-- **圆环或跑道**：选择「菜单栏样式 → 跑道」，额度数值和倒计时会被同一圈边框围住。亮起的长度代表剩余比例；例如 `H 78` 表示五小时额度还剩 78%。
-- **只留额度**：选择「菜单栏剩余时间 → 隐藏」，右侧倒计时和分隔点一起收起。需要知道几点重置时，点开面板仍能看到。
+- **圆环**始终显示额度数值和底部的 `H` 或 `W`。点击「显示内容」中的倒计时预览，可以收起或恢复右侧时间。
+- **跑道**里可以只放额度、只放倒计时，或同时显示两者。点击预览即可切换，高亮表示已显示，最后一项会保留。边框仍按所选额度的剩余比例点亮。
+
+两种样式分别记住选择。隐藏菜单栏时间后，面板仍可查看重置时间。Mac 原生面板按颜色区分周额度、五小时额度和重置时间。菜单栏中的 H、W 与额度数字同大。
 
 ## 常见问题
 

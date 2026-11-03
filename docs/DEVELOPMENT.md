@@ -13,17 +13,12 @@ cd codex-quota-bar
 
 ### macOS
 
-原生界面使用 AppKit / PyObjC，源码要求 macOS 11+；已验证环境见 [VALIDATION.md](../VALIDATION.md)，较早系统仍需自行验证。
+Mac 应用使用 Swift、AppKit 和 SwiftUI，最低运行版本为 macOS 13。装有 Xcode 的 Mac 可通过以下命令构建并启动。
 
 ```bash
-python3 --version
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -e .
-python -m codex_quota_bar
+bash scripts/build_macos.sh
+open "dist/Codex Quota Bar.app"
 ```
-
-如果默认 `python3` 指向旧版 Anaconda，请用已安装的 Python 3.10+ 创建环境，例如 Apple Silicon 上的 `/opt/homebrew/bin/python3 -m venv .venv`。后续使用 `.venv/bin/python`，避免混用解释器。
 
 ### Ubuntu
 
@@ -98,8 +93,8 @@ dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -
 macOS：
 
 ```bash
-python -m pip install . pyinstaller==6.22.3
-python -m PyInstaller --noconfirm packaging/macos.spec
+bash scripts/build_macos.sh
+"dist/Codex Quota Bar.app/Contents/MacOS/Codex Quota Bar" --demo --smoke-test
 ```
 
 Ubuntu：
@@ -110,7 +105,7 @@ python3 scripts/build_deb.py
 
 产物位于 `dist/`。[GitHub Actions](https://github.com/ZhaoOyu/codex-quota-bar/actions) 会测试 Ubuntu、macOS Apple Silicon 和 Intel，验证打包后启动及精简 PATH 下的 RPC。推送 `v*` 标签后，三个平台全部通过才发布安装包和 SHA256 校验文件。
 
-发布前同步 `codex_quota_bar/__init__.py`、`pyproject.toml`、`packaging/macos.spec` 中的版本号，以及 README 的下载链接和 `packaging/RELEASE_NOTES.md`。演示模式不能证明真实账户连接成功，应在已登录的桌面上另行检查 `--once` 和面板显示。验证记录见 [VALIDATION.md](../VALIDATION.md)。
+发布前同步 `codex_quota_bar/__init__.py`、`pyproject.toml` 中的版本号，以及 README 的下载链接和 `packaging/RELEASE_NOTES.md`。演示模式不能证明真实账户连接成功，应在已登录的桌面上另行检查 `--once` 和面板显示。验证记录见 [VALIDATION.md](../VALIDATION.md)。
 
 ## 配置清理
 
