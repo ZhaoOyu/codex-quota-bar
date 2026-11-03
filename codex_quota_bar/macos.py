@@ -1,4 +1,6 @@
 """Native AppKit status icon and transient, system-material quota popover."""
+from . import language
+from .language import tr
 
 import time
 import webbrowser
@@ -15,7 +17,7 @@ from .display import APPEARANCE, appearance, track_reading, WINDOWS, WINDOW_LABE
 
 
 def symbol(name, description):
-    return A.NSImage.imageWithSystemSymbolName_accessibilityDescription_(name, description)
+    return A.NSImage.imageWithSystemSymbolName_accessibilityDescription_(name, tr(description))
 
 
 def selected_window(preferences, key, quota):
@@ -110,11 +112,12 @@ class QuotaPanel(NSObject):
     def configure(self, controller, preferences=None):
         self.controller = controller
         self.preferences = preferences if preferences is not None else app_preferences()
+        language.select(self.preferences.stringForKey_("interfaceLanguage"))
         self.status = A.NSStatusBar.systemStatusBar().statusItemWithLength_(A.NSVariableStatusItemLength)
         self.button = self.status.button()
         self.button.setTarget_(self)
         self.button.setAction_("toggle:")
-        self.button.setTitle_("演示" if controller.demo else "")
+        self.button.setTitle_(tr("演示" if controller.demo else ""))
         self.button.setImagePosition_(A.NSImageLeft)
         self.button.setFont_(A.NSFont.monospacedDigitSystemFontOfSize_weight_(12, A.NSFontWeightBold))
         self.popover = A.NSPopover.alloc().init()
@@ -133,7 +136,7 @@ class QuotaPanel(NSObject):
 
     @objc.python_method
     def text(self, title, x, top, width, size=13, bold=False, secondary=False, height=20):
-        field = A.NSTextField.labelWithString_(title)
+        field = A.NSTextField.labelWithString_(tr(title))
         field.setFrame_(self.rect(x, top, width, height))
         field.setFont_(A.NSFont.systemFontOfSize_weight_(size, A.NSFontWeightSemibold if bold else A.NSFontWeightRegular))
         field.setTextColor_(A.NSColor.secondaryLabelColor() if secondary else A.NSColor.labelColor())
@@ -157,7 +160,7 @@ class QuotaPanel(NSObject):
 
     @objc.python_method
     def action(self, title, name, selector, x, top, width):
-        button = A.NSButton.buttonWithTitle_target_action_(title, self, selector)
+        button = A.NSButton.buttonWithTitle_target_action_(tr(title), self, selector)
         button.setFrame_(self.rect(x, top, width, 28))
         button.setBezelStyle_(A.NSBezelStyleRounded)
         button.setFont_(A.NSFont.systemFontOfSize_(12))
@@ -168,7 +171,7 @@ class QuotaPanel(NSObject):
 
     @objc.python_method
     def build(self, show_five):
-        self.height = 562 if show_five else 474
+        self.height = (562 if show_five else 474) + 38
         self.content = A.NSVisualEffectView.alloc().initWithFrame_(((0, 0), (340, self.height)))
         self.content.setMaterial_(A.NSVisualEffectMaterialPopover)
         self.content.setBlendingMode_(A.NSVisualEffectBlendingModeBehindWindow)
@@ -195,7 +198,7 @@ class QuotaPanel(NSObject):
             bar.setIndeterminate_(False)
             bar.setMinValue_(0)
             bar.setMaxValue_(100)
-            bar.setAccessibilityLabel_(title + "剩余")
+            bar.setAccessibilityLabel_(tr(title + "剩余"))
             self.content.addSubview_(bar)
             detail = self.text("等待数据…", 54, top + 45, 266, 11, secondary=True)
             self.rows[key] = (value, bar, detail)
@@ -216,13 +219,13 @@ class QuotaPanel(NSObject):
             self.text(CONTROL_LABELS[key], 20, top + offset + 4, 145, 12)
             self.selectors[key] = {}
             for x, choice in ((174, "weekly"), (250, "five_hour")):
-                control = A.NSButton.buttonWithTitle_target_action_(WINDOW_LABELS[choice], self, selector)
+                control = A.NSButton.buttonWithTitle_target_action_(tr(WINDOW_LABELS[choice]), self, selector)
                 control.setFrame_(self.rect(x, top + offset, 72, 28))
                 control.setBezelStyle_(A.NSBezelStyleRounded)
                 control.setButtonType_(A.NSPushOnPushOffButton)
                 control.setFont_(A.NSFont.systemFontOfSize_(12))
                 control.setTag_(WINDOWS.index(choice))
-                control.setAccessibilityLabel_(CONTROL_LABELS[key] + "：" + WINDOW_LABELS[choice])
+                control.setAccessibilityLabel_(tr(CONTROL_LABELS[key] + "：" + WINDOW_LABELS[choice]))
                 self.content.addSubview_(control)
                 self.selectors[key][choice] = control
         self.appearance_buttons = {}
@@ -230,11 +233,11 @@ class QuotaPanel(NSObject):
             y = top + 124 + 36*index
             self.text(label, 20, y+4, 145, 12)
             for j, (choice, title) in enumerate(options.items()):
-                control = A.NSButton.buttonWithTitle_target_action_(title, self, "appearanceChoice:")
+                control = A.NSButton.buttonWithTitle_target_action_(tr(title), self, "appearanceChoice:")
                 control.setFrame_(self.rect(174+j*76,y,72,28))
                 control.setButtonType_(A.NSPushOnPushOffButton)
                 control.setBezelStyle_(A.NSBezelStyleRounded)
-                control.setAccessibilityLabel_(label+"："+title)
+                control.setAccessibilityLabel_(tr(label+"："+title))
                 self.content.addSubview_(control)
                 self.appearance_buttons[(key,choice)] = control
         top += 72
@@ -243,7 +246,15 @@ class QuotaPanel(NSObject):
         self.refresh_button = self.action("刷新", "arrow.clockwise", "refresh:", 18, top + 134, 88)
         self.action("用量页面", "arrow.up.right.square", "usage:", 112, top + 134, 116)
         self.action("退出", "power", "quit:", 234, top + 134, 88)
-        self.auto = A.NSButton.checkboxWithTitle_target_action_("登录系统时启动", self, "startup:")
+        self.text("Language" if language.english() else "语言", 20, top + 174, 130, 12)
+        self.languages = A.NSPopUpButton.alloc().initWithFrame_pullsDown_(self.rect(164, top + 174 - 4, 158, 28), False)
+        self.languages.addItemsWithTitles_(language.names())
+        self.languages.selectItemAtIndex_(language.CHOICES.index(language.choice))
+        self.languages.setTarget_(self)
+        self.languages.setAction_("languageChanged:")
+        self.content.addSubview_(self.languages)
+        top += 38
+        self.auto = A.NSButton.checkboxWithTitle_target_action_(tr("登录系统时启动"), self, "startup:")
         self.auto.setFrame_(self.rect(20, top + 174, 180, 22))
         self.auto.setFont_(A.NSFont.systemFontOfSize_(11))
         self.auto.setState_(A.NSControlStateValueOn if startup.is_enabled() else A.NSControlStateValueOff)
@@ -274,7 +285,7 @@ class QuotaPanel(NSObject):
         show_time = appearance("timeDisplay",self.preferences.stringForKey_("timeDisplay")) == "shown"
         for (key, choice), control in self.appearance_buttons.items():
             control.setState_(int(choice == appearance(key,self.preferences.stringForKey_(key))))
-        time_text = countdown(time_window, now, show_days=time_choice == "weekly")
+        time_text = tr(countdown(time_window, now, show_days=time_choice == "weekly"))
         shown_time = time_text if show_time else ""
         value = fraction(quota_window, now)
         key = (style, show_time, quota_choice, quota_window, value, shown_time if style == "track" else "")
@@ -286,24 +297,24 @@ class QuotaPanel(NSObject):
         warning = bool(self.controller.error) or bool(quota and now - quota.fetched_at > 180)
         suffix = " ".join(x for x in ("!" if warning else "", shown_time if style == "ring" else "",
                                       "[演示]" if self.controller.demo else "") if x)
-        self.button.setTitle_(suffix)
+        self.button.setTitle_(tr(suffix))
         self.button.setImagePosition_(A.NSImageLeft if suffix else A.NSImageOnly)
         summary = ("图标：" + WINDOW_LABELS[quota_choice] + "剩余 " + remaining_text(quota_window, now)
                    + "；倒计时：" + WINDOW_LABELS[time_choice] + " " + time_text)
-        self.button.setToolTip_("Codex 额度\n" + summary + "\n" + title)
-        self.button.setAccessibilityLabel_("Codex 额度，" + summary + "，" + title)
+        self.button.setToolTip_(tr("Codex 额度\n" + summary + "\n" + title))
+        self.button.setAccessibilityLabel_(tr("Codex 额度，" + summary + "，" + title))
         for name, (value, bar, detail) in self.rows.items():
             window = getattr(quota, name) if quota else None
-            value.setStringValue_(remaining_text(window, now))
+            value.setStringValue_(tr(remaining_text(window, now)))
             amount = fraction(window, now)
             bar.setHidden_(amount is None)
             bar.setDoubleValue_(amount * 100 if amount is not None else 0)
-            detail.setStringValue_(("重置于 " + reset_text(window)) if window else "未提供此额度窗口")
-        self.reset_title.setStringValue_(WINDOW_LABELS[time_choice] + "重置倒计时")
-        self.reset_value.setStringValue_(time_text)
-        self.message.setStringValue_("演示数据 · 不连接账户" if self.controller.demo else
-                                     "正在刷新额度…" if self.controller.busy else details[-1])
-        self.message.setToolTip_(self.message.stringValue())
+            detail.setStringValue_(tr(("重置于 " + reset_text(window)) if window else "未提供此额度窗口"))
+        self.reset_title.setStringValue_(tr(WINDOW_LABELS[time_choice] + "重置倒计时"))
+        self.reset_value.setStringValue_(tr(time_text))
+        self.message.setStringValue_(tr("演示数据 · 不连接账户" if self.controller.demo else
+                                     "正在刷新额度…" if self.controller.busy else details[-1]))
+        self.message.setToolTip_(tr(self.message.stringValue()))
         self.refresh_button.setEnabled_(not self.controller.busy and not self.controller.demo)
 
     def appearanceChoice_(self, sender):
@@ -336,13 +347,20 @@ class QuotaPanel(NSObject):
     def usage_(self, _):
         webbrowser.open("https://chatgpt.com/codex/settings/usage")
 
+    def languageChanged_(self, sender):
+        value = language.CHOICES[sender.indexOfSelectedItem()]
+        self.preferences.setObject_forKey_(value, "interfaceLanguage")
+        language.select(value)
+        self.build(self.layout_key)
+        self.tick_(None)
+
     def startup_(self, _):
         try:
             startup.set_enabled(bool(self.auto.state()))
         except (OSError, UsageError):
             alert = A.NSAlert.alloc().init()
-            alert.setMessageText_("无法修改开机启动设置")
-            alert.setInformativeText_("请检查用户目录权限和 Codex 路径。")
+            alert.setMessageText_(tr("无法修改开机启动设置"))
+            alert.setInformativeText_(tr("请检查用户目录权限和 Codex 路径。"))
             alert.runModal()
         self.auto.setState_(A.NSControlStateValueOn if startup.is_enabled() else A.NSControlStateValueOff)
 

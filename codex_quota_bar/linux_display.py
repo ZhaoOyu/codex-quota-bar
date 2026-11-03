@@ -26,6 +26,7 @@ class Preferences:
     @staticmethod
     def valid(key, value):
         return isinstance(value, str) and ((key in CONTROL_LABELS and value in WINDOWS)
+                or (key == "interfaceLanguage" and value in ("system", "zh-Hans", "en"))
                 or (key == "trackParts" and value in ("1", "2", "3"))
                 or (key in APPEARANCE and value in APPEARANCE[key][1]))
 

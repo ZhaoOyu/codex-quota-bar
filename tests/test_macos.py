@@ -23,6 +23,7 @@ class NativePanelTests(unittest.TestCase):
         from Foundation import NSUserDefaults
         self.preference_suite = "io.github.codex-quota-bar.tests." + uuid.uuid4().hex
         self.preferences = NSUserDefaults.alloc().initWithSuiteName_(self.preference_suite)
+        self.preferences.setObject_forKey_("zh-Hans", "interfaceLanguage")
         self.panel.configure(self.controller, self.preferences)
 
     def tearDown(self):
@@ -65,12 +66,12 @@ class NativePanelTests(unittest.TestCase):
         self.controller.quota = Quota(None, original.weekly, time.time())
         self.panel.tick_(None)
         self.assertEqual(list(self.panel.rows), ["weekly"])
-        self.assertEqual(self.panel.height, 474)
+        self.assertEqual(self.panel.height, 512)
         self.assertIn("天", self.panel.reset_value.stringValue())
         self.controller.quota = original
         self.panel.tick_(None)
         self.assertEqual(len(self.panel.rows), 2)
-        self.assertEqual(self.panel.height, 562)
+        self.assertEqual(self.panel.height, 600)
 
     def test_error_removes_previous_numbers(self):
         self.controller.demo = False

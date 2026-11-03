@@ -1,4 +1,6 @@
 """Native GTK quota panel and AppIndicator symbolic ring."""
+from . import language
+from .language import tr
 
 import hashlib
 from pathlib import Path
@@ -45,12 +47,13 @@ class QuotaPanel:
     def __init__(self, controller, preferences=None, *, indicator_id="codex-quota-bar"):
         self.controller = controller
         self.preferences = preferences if preferences is not None else Preferences()
+        language.select(self.preferences.get("interfaceLanguage"))
         self.preference_error = ""
         self.icons = tempfile.TemporaryDirectory(prefix="codex-quota-icons-")
         self.icon_key = None
         self.icon_paths = []
         self.panel_size = None
-        self.window = Gtk.Window(title="Codex 额度")
+        self.window = Gtk.Window(title=tr("Codex 额度"))
         self.window.set_name("codex-quota")
         self.window.set_decorated(False)
         self.window.set_resizable(False)
@@ -80,6 +83,14 @@ class QuotaPanel:
             AppIndicator.IndicatorCategory.APPLICATION_STATUS)
         self.indicator.set_title("Codex Quota Bar")
         self.indicator.set_icon_theme_path(self.icons.name)
+        self.build_menu()
+        # Newer Ayatana versions can forward primary activation directly.
+        if GObject.signal_lookup("activate", self.indicator.__gtype__):
+            self.indicator.connect("activate", self.present)
+        self.indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
+        self.tick()
+
+    def build_menu(self):
         self.menu = Gtk.Menu()
         open_item = self.menu_action("打开额度面板", self.present)
         self.menu_action("立即刷新", self.refresh)
@@ -88,20 +99,15 @@ class QuotaPanel:
         self.menu.show_all()
         self.indicator.set_menu(self.menu)
         self.indicator.set_secondary_activate_target(open_item)
-        # Newer Ayatana versions can forward primary activation directly.
-        if GObject.signal_lookup("activate", self.indicator.__gtype__):
-            self.indicator.connect("activate", self.present)
-        self.indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
-        self.tick()
 
     def menu_action(self, title, callback):
-        item = Gtk.MenuItem(label=title)
+        item = Gtk.MenuItem(label=tr(title))
         item.connect("activate", callback)
         self.menu.append(item)
         return item
 
     def label(self, title="", style=None, right=False):
-        label = Gtk.Label(label=title, xalign=1 if right else 0)
+        label = Gtk.Label(label=tr(title), xalign=1 if right else 0)
         label.set_valign(Gtk.Align.CENTER)
         if style:
             label.get_style_context().add_class(style)
@@ -138,7 +144,7 @@ class QuotaPanel:
             section.pack_start(row, False, False, 0)
             bar = Gtk.ProgressBar()
             bar.set_margin_start(36)
-            bar.get_accessible().set_name(WINDOW_LABELS[key] + "额度剩余")
+            bar.get_accessible().set_name(tr(WINDOW_LABELS[key] + "额度剩余"))
             section.pack_start(bar, False, False, 0)
             detail = self.label("等待数据…", "detail")
             detail.get_style_context().add_class("dim-label")
@@ -159,9 +165,9 @@ class QuotaPanel:
             row.pack_start(self.label(title), True, True, 0)
             self.selectors[key] = {}
             for choice in ("weekly", "five_hour"):
-                button = Gtk.ToggleButton(label=WINDOW_LABELS[choice])
+                button = Gtk.ToggleButton(label=tr(WINDOW_LABELS[choice]))
                 button.set_size_request(72, 30)
-                button.get_accessible().set_name(title + "：" + WINDOW_LABELS[choice])
+                button.get_accessible().set_name(tr(title + "：" + WINDOW_LABELS[choice]))
                 button.connect("clicked", self.select, key, choice)
                 row.pack_start(button, False, False, 0)
                 self.selectors[key][choice] = button
@@ -173,9 +179,9 @@ class QuotaPanel:
             row = Gtk.Box(spacing=6)
             row.pack_start(self.label(label), True, True, 0)
             for choice, title in options.items():
-                button = Gtk.ToggleButton(label=title)
+                button = Gtk.ToggleButton(label=tr(title))
                 button.set_size_request(72, 30)
-                button.get_accessible().set_name(label+"："+title)
+                button.get_accessible().set_name(tr(label+"："+title))
                 button.connect("clicked",self.select,key,choice)
                 row.pack_start(button,False,False,0)
                 self.appearance_buttons[key,choice] = button
@@ -184,8 +190,8 @@ class QuotaPanel:
         row.pack_start(self.label("显示内容"), True, True, 0)
         self.part_buttons = {}
         for bit, label in ((1, "额度数值"), (2, "倒计时")):
-            button = Gtk.ToggleButton(label=label)
-            button.get_accessible().set_name(label)
+            button = Gtk.ToggleButton(label=tr(label))
+            button.get_accessible().set_name(tr(label))
             button.set_size_request(72, 30)
             button.connect("clicked", self.toggle_part, bit)
             row.pack_start(button, False, False, 0)
@@ -200,14 +206,15 @@ class QuotaPanel:
         actions = Gtk.Box(spacing=6, homogeneous=True)
         for title, callback in (("刷新", self.refresh), ("用量页面", self.usage),
                                 ("退出", lambda *_: Gtk.main_quit())):
-            button = Gtk.Button(label=title)
+            button = Gtk.Button(label=tr(title))
             button.connect("clicked", callback)
             actions.pack_start(button, True, True, 0)
             if title == "刷新":
                 self.refresh_button = button
         root.pack_start(actions, False, False, 0)
+        root.pack_start(self.language_row(), False, False, 0)
         footer = Gtk.Box()
-        self.auto = Gtk.CheckButton(label="登录系统时启动")
+        self.auto = Gtk.CheckButton(label=tr("登录系统时启动"))
         self.auto.set_active(startup.is_enabled())
         self.auto_handler = self.auto.connect("toggled", self.toggle_startup)
         footer.pack_start(self.auto, True, True, 0)
@@ -237,12 +244,12 @@ class QuotaPanel:
             button.handler_block_by_func(self.select)
             button.set_active(choice == appearance(name, self.preferences.get(name)))
             button.handler_unblock_by_func(self.select)
-        time_text = countdown(time_window, now, show_days=time_choice == "weekly")
+        time_text = tr(countdown(time_window, now, show_days=time_choice == "weekly"))
         amount = track_reading(quota_window, now, quota_choice, "")
         for bit, button in self.part_buttons.items():
             button.handler_block_by_func(self.toggle_part)
             button.set_active(bool(parts & bit))
-            button.set_label(amount if bit == 1 else time_text)
+            button.set_label(tr(amount if bit == 1 else time_text))
             button.handler_unblock_by_func(self.toggle_part)
         if style == "track":
             reading = " · ".join(text for bit, text in ((1, amount), (2, time_text)) if parts & bit)
@@ -256,8 +263,8 @@ class QuotaPanel:
         if key != self.icon_key:
             path = Path(self.icons.name) / f"quota-{key}-symbolic.svg"
             path.write_text(svg)
-            self.indicator.set_icon_full(str(path), "Codex 额度：" + WINDOW_LABELS[quota_choice]
-                                         + "剩余 " + remaining_text(quota_window, now))
+            self.indicator.set_icon_full(str(path), tr("Codex 额度：" + WINDOW_LABELS[quota_choice]
+                                         + "剩余 " + remaining_text(quota_window, now)))
             self.icon_key = key
             if path in self.icon_paths:
                 self.icon_paths.remove(path)
@@ -265,25 +272,25 @@ class QuotaPanel:
             if len(self.icon_paths) > 64:
                 self.icon_paths.pop(0).unlink(missing_ok=True)
         warning = bool(self.controller.error) or bool(quota and now - quota.fetched_at > 180)
-        self.indicator.set_label(" ".join(x for x in ("·" if show_time and style=="ring" else "",
+        self.indicator.set_label(tr(" ".join(x for x in ("·" if show_time and style=="ring" else "",
                                  "!" if warning else "", time_text if show_time and style=="ring" else "",
-                                 "[演示]" if self.controller.demo else "") if x), "")
-        self.indicator.set_title("Codex 额度 · " + title)
-        self.header.set_text("Codex 额度 · 演示" if self.controller.demo else "Codex 额度")
+                                 "[演示]" if self.controller.demo else "") if x)), "")
+        self.indicator.set_title(tr("Codex 额度 · " + title))
+        self.header.set_text(tr("Codex 额度 · 演示" if self.controller.demo else "Codex 额度"))
         self.sections["five_hour"].set_visible(bool(quota and quota.five_hour is not None))
         for name, (value, bar, detail) in self.rows.items():
             window = getattr(quota, name) if quota else None
-            value.set_text(remaining_text(window, now))
+            value.set_text(tr(remaining_text(window, now)))
             amount = fraction(window, now)
             bar.set_visible(amount is not None)
             bar.set_fraction(amount if amount is not None else 0)
-            detail.set_text("重置于 " + reset_text(window) if window else "未提供此额度窗口")
-        self.reset_title.set_text(WINDOW_LABELS[time_choice] + "重置倒计时")
-        self.reset_value.set_text(time_text)
+            detail.set_text(tr("重置于 " + reset_text(window) if window else "未提供此额度窗口"))
+        self.reset_title.set_text(tr(WINDOW_LABELS[time_choice] + "重置倒计时"))
+        self.reset_value.set_text(tr(time_text))
         message = self.preference_error or ("演示数据 · 不连接账户" if self.controller.demo else
                    "正在刷新额度…" if self.controller.busy else details[-1])
-        self.message.set_text(message)
-        self.message.set_tooltip_text(message)
+        self.message.set_text(tr(message))
+        self.message.set_tooltip_text(tr(message))
         self.refresh_button.set_sensitive(not self.controller.busy and not self.controller.demo)
         self.menu.get_children()[1].set_sensitive(self.refresh_button.get_sensitive())
         # Shrink when a section disappears, without requesting a 1px native window.
@@ -293,6 +300,33 @@ class QuotaPanel:
             self.window.resize(*size)
             self.panel_size = size
         return True
+
+    def language_row(self):
+        row = Gtk.Box(spacing=8)
+        row.pack_start(Gtk.Label(label=tr("Language" if language.english() else "语言"), xalign=0), True, True, 0)
+        combo = self.languages = Gtk.ComboBoxText()
+        for key, name in zip(language.CHOICES, language.names()):
+            combo.append(key, name)
+        combo.set_active_id(language.choice)
+        combo.connect("changed", self.change_language)
+        row.pack_end(combo, False, False, 0)
+        return row
+
+    def change_language(self, combo):
+        value = combo.get_active_id()
+        try:
+            self.preferences.set("interfaceLanguage", value)
+        except OSError:
+            self.preference_error = "无法保存显示选择，请检查配置目录权限。"
+            self.tick()
+            return
+        language.select(value)
+        self.window.get_child().destroy()
+        self.window.set_title(tr("Codex 额度"))
+        self.build()
+        self.indicator.set_secondary_activate_target(None)
+        self.build_menu()
+        self.tick()
 
     def visible_parts(self, style):
         ring = 1 if self.preferences.get("timeDisplay") == "hidden" else 3
@@ -336,7 +370,7 @@ class QuotaPanel:
         try:
             startup.set_enabled(button.get_active())
         except (OSError, UsageError):
-            show_message("无法修改开机启动设置，请检查用户目录权限和 Codex 路径。", self.window)
+            show_message(tr("无法修改开机启动设置，请检查用户目录权限和 Codex 路径。"), self.window)
         button.handler_block(self.auto_handler)
         button.set_active(startup.is_enabled())
         button.handler_unblock(self.auto_handler)
@@ -391,6 +425,6 @@ def run(controller, smoke_test=False):
 def show_message(message, parent=None):
     dialog = Gtk.MessageDialog(transient_for=parent, modal=True,
                                message_type=Gtk.MessageType.INFO,
-                               buttons=Gtk.ButtonsType.OK, text=message)
+                               buttons=Gtk.ButtonsType.OK, text=tr(message))
     dialog.run()
     dialog.destroy()

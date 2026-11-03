@@ -7,7 +7,7 @@ let cli = args.firstIndex(of: "--codex").flatMap { args.indices.contains($0+1) ?
     args.first(where: { $0.hasPrefix("--codex=") }).map { String($0.dropFirst(8)) }
 let demoSuite = "quota.demo."+UUID().uuidString
 let windows = ["weekly", "five_hour"]
-func title(_ key: String) -> String { key == "weekly" ? "每周" : "五小时" }
+func title(_ key: String) -> String { key == "weekly" ? tr("每周") : tr("五小时") }
 
 final class QuotaApp: NSObject, NSApplicationDelegate, ObservableObject {
     let panel = MenuPanel()
@@ -30,12 +30,17 @@ final class QuotaApp: NSObject, NSApplicationDelegate, ObservableObject {
     var timeKey: String { choice("countdownWindow") }
     var digits: String { window(quotaKey)?.digits ?? "--" }
     var marker: String { quotaKey == "weekly" ? "W" : "H" }
-    var time: String { window(timeKey)?.countdown(weekly: timeKey == "weekly") ?? "--:--" }
+    var time: String { tr(window(timeKey)?.countdown(weekly: timeKey == "weekly") ?? "--:--") }
     func applicationDidFinishLaunching(_ notification: Notification) {
         panel.configure(QuotaView(model: self))
         tick()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.tick() }
         if args.contains("--smoke-test") {
+            setLanguage("en")
+            precondition(panel.item.button?.toolTip?.hasPrefix("Codex Quota") == true)
+            setLanguage("zh-Hans")
+            precondition(panel.item.button?.toolTip?.hasPrefix("Codex 额度") == true)
+            setLanguage("system")
             DispatchQueue.main.asyncAfter(deadline: .now()+0.5) { self.panel.item.button?.performClick(nil) }
             for (style, expected) in [(Style.track, 3), (.ring, 3)] {
                 set("indicatorStyle", style.rawValue)
@@ -88,12 +93,17 @@ final class QuotaApp: NSObject, NSApplicationDelegate, ObservableObject {
                 trackImage(number: digits, marker: marker, time: time, parts: prefs.parts, fraction: fraction)
             lastIcon = key
         }
-        let suffix = (ring && prefs.parts == 3 ? " · "+time : "") + (error.isEmpty && !stale ? "" : " !") + (demo ? " 演示" : "")
+        let suffix = (ring && prefs.parts == 3 ? " · "+time : "") + (error.isEmpty && !stale ? "" : " !") + (demo ? tr(" 演示") : "")
         button.title = suffix
         button.font = timeFont
         button.imagePosition = suffix.isEmpty ? .imageOnly : .imageLeading
-        button.toolTip = "Codex 额度 · "+title(quotaKey)+" "+digits+" · "+title(timeKey)+"重置 "+time
+        button.toolTip = tr("Codex 额度 · ")+title(quotaKey)+" "+digits+" · "+title(timeKey)+tr("重置 ")+time
         button.setAccessibilityLabel(button.toolTip)
+    }
+    func setLanguage(_ choice: String) {
+        AppLanguage.choice = choice
+        lastIcon = nil
+        update()
     }
     func startup(_ enabled: Bool) {
         do { try login.setEnabled(enabled) } catch { NSAlert(error: error).runModal() }
@@ -130,42 +140,46 @@ struct QuotaView: View {
 
     func preview(_ bit: Int, _ value: String, _ name: String) -> some View {
         chip(value, name: name, selected: model.prefs.parts & bit != 0) { model.toggle(bit) }
-        .help(model.prefs.style == .ring && bit == 1 ? "圆环始终显示额度" : "点击切换，至少保留一项")
+        .help(model.prefs.style == .ring && bit == 1 ? tr("圆环始终显示额度") : tr("点击切换，至少保留一项"))
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PanelHeading(name: demo ? "Codex 额度 · 演示" : "Codex 额度", symbol: "gauge.medium", color: .teal)
+            PanelHeading(name: demo ? tr("Codex 额度 · 演示") : tr("Codex 额度"), symbol: "gauge.medium", color: .teal)
             Divider()
             ForEach(windows.filter { $0 == "weekly" || model.quota?.five_hour != nil }, id: \.self) { key in
                 let w = model.window(key)
                 VStack(alignment: .leading, spacing: 7) {
                     HStack(spacing: 12) {
                         PanelGlyph(symbol: key == "weekly" ? "calendar" : "clock", color: key == "weekly" ? .indigo : .blue)
-                        Text(title(key)+"额度剩余").bold()
+                        Text(title(key)+tr("额度剩余")).bold()
                         Spacer()
-                        Text(w.map { $0.expired ? "待刷新" : $0.digits+"%" } ?? "--").bold().monospacedDigit()
+                        Text(w.map { $0.expired ? tr("待刷新") : $0.digits+"%" } ?? "--").bold().monospacedDigit()
                     }
                     if let f = w?.fraction { ProgressView(value: f).padding(.leading, 34) }
-                    Text(w?.resets_at.map { "重置于 "+Date(timeIntervalSince1970: $0).formatted(date: .abbreviated, time: .standard) } ?? "暂无重置时间")
+                    Text(w?.resets_at.map { tr("重置于 ")+Date(timeIntervalSince1970: $0).formatted(Date.FormatStyle(date: .abbreviated, time: .standard).locale(AppLanguage.locale)) } ?? tr("暂无重置时间"))
                         .font(.caption).foregroundStyle(.secondary).padding(.leading, 34)
                 }
                 Divider()
             }
-            HStack(spacing: 12) { PanelGlyph(symbol: "hourglass", color: .orange); Text(title(model.timeKey)+"重置倒计时"); Spacer(); Text(model.time).bold().monospacedDigit() }
+            HStack(spacing: 12) { PanelGlyph(symbol: "hourglass", color: .orange); Text(title(model.timeKey)+tr("重置倒计时")); Spacer(); Text(model.time).bold().monospacedDigit() }
             Divider()
-            selector("图标额度", "quotaWindow", windows.map { ($0,title($0)) }, model.quotaKey)
-            selector("右侧倒计时", "countdownWindow", windows.map { ($0,title($0)) }, model.timeKey)
-            selector("菜单栏样式", "indicatorStyle", [("ring","圆环"),("track","跑道")], model.prefs.style.rawValue)
-            HStack { Text("显示内容").fontWeight(.semibold); Spacer(); HStack(spacing: 4) { preview(1,model.marker+" "+model.digits,"显示额度数值"); preview(2,model.time,"显示倒计时") } }
-            Text(demo ? "演示数据" : model.busy ? "正在刷新额度…" : !model.error.isEmpty ? model.error :
-                    model.quota.map { "更新于 "+Date(timeIntervalSince1970: $0.fetched_at).formatted(date: .omitted, time: .standard)+" · 每 60 秒刷新" } ?? "等待读取")
+            selector(tr("图标额度"), "quotaWindow", windows.map { ($0,title($0)) }, model.quotaKey)
+            selector(tr("右侧倒计时"), "countdownWindow", windows.map { ($0,title($0)) }, model.timeKey)
+            selector(tr("菜单栏样式"), "indicatorStyle", [("ring",tr("圆环")),("track",tr("跑道"))], model.prefs.style.rawValue)
+            HStack { Text(tr("显示内容")).fontWeight(.semibold); Spacer(); HStack(spacing: 4) { preview(1,model.marker+" "+model.digits,tr("显示额度数值")); preview(2,model.time,tr("显示倒计时")) } }
+            Text(demo ? tr("演示数据") : model.busy ? tr("正在刷新额度…") : !model.error.isEmpty ? tr(model.error) :
+                    model.quota.map { tr("更新于 ")+Date(timeIntervalSince1970: $0.fetched_at).formatted(Date.FormatStyle(date: .omitted, time: .standard).locale(AppLanguage.locale))+tr(" · 每 60 秒刷新") } ?? tr("等待读取"))
                 .font(.caption).foregroundStyle(.secondary)
             Divider()
-            HStack { Button("刷新", action: model.refresh).disabled(demo || model.busy); Spacer()
-                Button("用量页面") { NSWorkspace.shared.open(URL(string: "https://chatgpt.com/codex/settings/usage")!) }
-                Spacer(); Button("退出") { NSApp.terminate(nil) } }
-            Toggle("登录系统时启动", isOn: Binding(get: { model.login.enabled }, set: model.startup)).disabled(demo)
-        }.padding(18).frame(width: 360).fixedSize(horizontal: false, vertical: true)
+            HStack { Button(tr("刷新"), action: model.refresh).disabled(demo || model.busy); Spacer()
+                Button(tr("用量页面")) { NSWorkspace.shared.open(URL(string: "https://chatgpt.com/codex/settings/usage")!) }
+                Spacer(); Button(tr("退出")) { NSApp.terminate(nil) } }
+            Picker(AppLanguage.english ? "Language" : "语言", selection: Binding(
+                get: { AppLanguage.choice }, set: model.setLanguage)) {
+                ForEach(Array(zip(AppLanguage.choices, AppLanguage.names)), id: \.0) { Text($0.1).tag($0.0) }
+            }
+            Toggle(tr("登录系统时启动"), isOn: Binding(get: { model.login.enabled }, set: model.startup)).disabled(demo)
+        }.padding(18).frame(width: AppLanguage.english ? 400 : 360).fixedSize(horizontal: false, vertical: true)
     }
 }
 

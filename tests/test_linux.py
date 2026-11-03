@@ -76,6 +76,7 @@ class LinuxPanelTests(unittest.TestCase):
         from codex_quota_bar.linux import QuotaPanel
         self.directory = tempfile.TemporaryDirectory()
         self.preferences = Preferences(Path(self.directory.name) / "prefs.json")
+        self.preferences.set("interfaceLanguage", "zh-Hans")
         self.controller = Controller(demo=True)
         self.panel = QuotaPanel(self.controller, self.preferences,
                                indicator_id="codex-quota-test-" + uuid.uuid4().hex)
@@ -85,6 +86,17 @@ class LinuxPanelTests(unittest.TestCase):
         self.directory.cleanup()
         while self.Gtk.events_pending():
             self.Gtk.main_iteration_do(False)
+
+    def test_language_switch_keeps_quota_and_updates_menu(self):
+        panel = self.panel
+        quota = self.controller.quota
+        panel.languages.set_active_id("en")
+        self.assertEqual(panel.header.get_text(), "Codex Quota · Demo")
+        self.assertEqual(panel.menu.get_children()[0].get_label(), "Open quota panel")
+        self.assertEqual(Preferences(self.preferences.path).get("interfaceLanguage"), "en")
+        panel.languages.set_active_id("zh-Hans")
+        self.assertEqual(panel.header.get_text(), "Codex 额度 · 演示")
+        self.assertIs(self.controller.quota, quota)
 
     def test_initial_status_icon_renders_and_is_cached(self):
         from gi.repository import GdkPixbuf
