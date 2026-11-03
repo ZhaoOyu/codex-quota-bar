@@ -4,6 +4,10 @@
 
 **[下载 Mac 版（M 系列芯片）](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.6/codex-quota-bar-macos-arm64.zip)** · [Intel Mac](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.6/codex-quota-bar-macos-x86_64.zip) · [Ubuntu](https://github.com/ZhaoOyu/codex-quota-bar/releases/download/v0.1.6/codex-quota-bar_0.1.6_all.deb)
 
+<img src="docs/images/menubar-016.png" width="320" alt="左侧圆环显示五小时额度剩余 78%，右侧跑道显示周额度剩余 62%">
+
+左边的圆环看五小时余量，右边的跑道看周余量。两种样式都可以配上重置倒计时。
+
 <img src="docs/images/quota-panel-016.png" width="360" alt="Codex 余量的 Mac 面板，同时展示周额度、五小时额度和重置倒计时，下方可切换圆环与跑道">
 
 ## 把最关心的数字放在手边
