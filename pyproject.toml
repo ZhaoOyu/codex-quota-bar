@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "codex-quota-bar"
-version = "0.1.10"
+version = "0.1.11"
 description = "Codex five-hour and weekly quota in your macOS or Ubuntu menu bar"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -18,4 +18,4 @@ codex-quota-bar = "codex_quota_bar.__main__:main"
 include = ["codex_quota_bar*"]
 
 [tool.setuptools.package-data]
-codex_quota_bar = ["icons/*.svg"]
+codex_quota_bar = ["icons/*.svg", "shell-interface.xml"]

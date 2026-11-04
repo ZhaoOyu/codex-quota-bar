@@ -1,0 +1,11 @@
+.codex-panel { width: 370px; spacing: 12px; padding: 10px 12px; }
+.codex-heading { font-size: 16px; font-weight: bold; }
+.codex-row { spacing: 10px; }
+.codex-section { spacing: 6px; }
+.codex-value { font-size: 16px; font-weight: bold; }
+.codex-detail { font-size: 11px; }
+.codex-choice { padding: 5px 9px; border-radius: 7px; }
+.codex-choice:checked { background-color: rgba(100, 150, 230, 0.35); }
+.codex-controls { spacing: 5px; }
+.codex-track-label { padding: 2px 12px; font-weight: bold; }
+.codex-tray { spacing: 5px; }

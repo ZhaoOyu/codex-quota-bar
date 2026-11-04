@@ -1,5 +1,14 @@
 # Validation record
 
+## Native GNOME companion extension — 2026-11-04
+
+- Added a GNOME 45–50 ES-module extension with its own PanelMenu popup, not a patch to Ubuntu AppIndicators. Session D-Bus exports display-only snapshots and whitelisted controls; the existing Codex client is unchanged.
+- Native GTK/D-Bus suite: 79 tests, 67 passed and 12 macOS-only tests skipped. Five real asynchronous D-Bus tests cover snapshots, settings, invalid requests, notifications, tray claim/release, lease expiry and peer disconnect. Preferences are temporary; startup actions are mocked.
+- `scripts/smoke_gnome_extension.py` runs a private GNOME Shell 50.1 headless Wayland compositor, private D-Bus, temporary XDG settings and a demo backend. The test-only driver is not shipped in the extension. It verifies the native popup, quota readings, button allocation/visibility, track geometry, display and language callbacks, close/reopen, and disable/re-enable. Its actual Shell screenshot was visually inspected. This exercises native menu APIs and button signals, not physical pointer injection.
+- The screenshot uses labelled synthetic readings, not account data. No extension was installed or enabled in the user's active desktop, and no login/logout was triggered. The harness retains its isolated temporary directory for inspection because session portals can leave transient FUSE mounts.
+- GNOME 45–49 are declared compatible with the shared APIs but not individually runtime-tested. Older Shell versions keep the original tray. macOS remains covered by release CI.
+- Build both artifacts with `python3 scripts/build_deb.py` and `python3 scripts/build_gnome_extension.py`. The DEB includes the extension without enabling it; the ZIP contains only metadata, production JavaScript and CSS.
+
 ## Ubuntu enclosing track correction — 2026-11-04
 
 - The user's v0.1.8 screenshot showed the small track separated from its text. The previous split-image workaround did not preserve the intended layout.

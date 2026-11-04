@@ -1,0 +1,14 @@
+<node>
+  <interface name="io.github.ZhaoOyu.CodexQuotaBar1">
+    <method name="GetState"><arg type="s" direction="out" name="state"/></method>
+    <method name="Claim"/>
+    <method name="Release"/>
+    <method name="SetPreference"><arg type="s" direction="in" name="key"/><arg type="s" direction="in" name="value"/></method>
+    <method name="TogglePart"><arg type="u" direction="in" name="bit"/></method>
+    <method name="SetStartup"><arg type="b" direction="in" name="enabled"/></method>
+    <method name="Refresh"/>
+    <method name="Usage"/>
+    <method name="Quit"/>
+    <signal name="StateChanged"><arg type="s" name="state"/></signal>
+  </interface>
+</node>

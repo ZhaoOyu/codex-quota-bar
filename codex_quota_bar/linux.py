@@ -73,6 +73,7 @@ class QuotaPanel:
         self.icon_key = None
         self.icon_paths = []
         self.panel_size = None
+        self.shell_bridge = None
         self.window = Gtk.Window(title=tr("Codex 额度"))
         self.window.set_name("codex-quota")
         self.window.set_decorated(False)
@@ -395,7 +396,15 @@ class QuotaPanel:
         if size != self.panel_size:
             self.window.resize(*size)
             self.panel_size = size
+        if self.shell_bridge is not None:
+            self.shell_bridge.publish()
         return True
+
+    def set_shell_attached(self, attached):
+        self.indicator.set_status(AppIndicator.IndicatorStatus.PASSIVE if attached
+                                  else AppIndicator.IndicatorStatus.ACTIVE)
+        if attached:
+            self.window.hide()
 
     def language_row(self):
         row = Gtk.Box(spacing=8)
@@ -495,6 +504,9 @@ class QuotaPanel:
         return self.hide() if event.keyval == Gdk.KEY_Escape else False
 
     def close(self):
+        if self.shell_bridge is not None:
+            self.shell_bridge.close()
+            self.shell_bridge = None
         self.indicator.set_status(AppIndicator.IndicatorStatus.PASSIVE)
         self.window.destroy()
         self.menu.destroy()
@@ -507,6 +519,9 @@ def run(controller, smoke_test=False):
     if not initialized:
         raise ValueError("无法连接图形桌面；可用 --once 检查额度。")
     panel = QuotaPanel(controller)
+    if not smoke_test:
+        from .shell_bridge import ShellBridge
+        panel.shell_bridge = ShellBridge(panel)
     timer = GLib.timeout_add_seconds(1, panel.tick)
     if smoke_test:
         panel.present()

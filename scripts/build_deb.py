@@ -27,6 +27,10 @@ def main():
         desktop = stage / "usr/share/applications"
         desktop.mkdir(parents=True)
         shutil.copy2(ROOT / "packaging/codex-quota-bar.desktop", desktop)
+        extension = stage / "usr/share/gnome-shell/extensions/codex-quota-bar@zhaooyu.github.io"
+        extension.mkdir(parents=True)
+        for name in ("metadata.json", "extension.js", "stylesheet.css"):
+            shutil.copy2(ROOT / "gnome" / name, extension)
         docs = stage / "usr/share/doc/codex-quota-bar"
         docs.mkdir(parents=True)
         shutil.copy2(ROOT / "LICENSE", docs / "copyright")

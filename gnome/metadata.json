@@ -1,0 +1,8 @@
+{
+  "uuid": "codex-quota-bar@zhaooyu.github.io",
+  "name": "Codex Quota Panel",
+  "description": "Open Codex quota readings and controls directly from the top bar. Requires Codex Quota Bar 0.1.11 or later.",
+  "shell-version": ["45", "46", "47", "48", "49", "50"],
+  "version": 1,
+  "url": "https://github.com/ZhaoOyu/codex-quota-bar"
+}

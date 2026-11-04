@@ -34,6 +34,8 @@ jobs:
         run: dbus-run-session -- xvfb-run -a /usr/bin/python3 -m codex_quota_bar --demo --smoke-test
       - name: Build and check package
         run: |
+          node --input-type=module --check < gnome/extension.js
+          /usr/bin/python3 scripts/build_gnome_extension.py
           /usr/bin/python3 scripts/build_deb.py
           sudo apt-get install -y ./dist/*.deb
           codex-quota-bar --demo --once
@@ -41,7 +43,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ubuntu-deb
-          path: dist/*.deb
+          path: |
+            dist/*.deb
+            dist/*.shell-extension.zip
           if-no-files-found: error
 
   macos:
