@@ -21,6 +21,15 @@ jobs:
           sudo apt-get install -y python3-gi python3-cairo librsvg2-common gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 xvfb dbus-x11
       - name: Test protocol, quota and startup behavior
         run: dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -v
+      - name: Render Ubuntu track preview
+        if: always()
+        run: /usr/bin/python3 scripts/preview_linux_track.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ubuntu-track-preview
+          path: dist/linux-track-preview.png
+          if-no-files-found: warn
       - name: Test GTK application lifecycle
         run: dbus-run-session -- xvfb-run -a /usr/bin/python3 -m codex_quota_bar --demo --smoke-test
       - name: Build and check package

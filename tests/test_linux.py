@@ -281,9 +281,13 @@ class LinuxPanelTests(unittest.TestCase):
                     return data[pos:pos + 4]
                 self.assertEqual(pixel(0, 0)[3], 0)
                 # Full-color loader must show light glyph pixels inside the track.
-                self.assertTrue(any(pixel(x, y)[0] > 200 and pixel(x, y)[3] > 200
-                                    for x in range(12 * scale, (width - 12) * scale)
-                                    for y in range(7 * scale, 18 * scale)))
+                interior = [pixel(x, y)
+                            for x in range(12 * scale, (width - 12) * scale)
+                            for y in range(7 * scale, 18 * scale)]
+                self.assertTrue(any(p[0] > 200 and p[3] > 200 for p in interior),
+                                f"reading={reading!r}, scale={scale}, width={width}, "
+                                f"max alpha={max(p[3] for p in interior)}, "
+                                f"coverage={sum(p[3] for p in interior) / 255}")
 
     def test_direct_menu_refresh_and_usage(self):
         self.controller.demo = False
