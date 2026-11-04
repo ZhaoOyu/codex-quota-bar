@@ -44,7 +44,7 @@ def text_outline(text, center, baseline, size):
     return f'<path d="{path}"/>'
 
 
-def track_icon(reading, value):
+def track_text_layout(reading):
     # Match librsvg's Pango text shaping, including CJK font fallback. Cairo's
     # toy font metrics can disagree with the glyphs used in the final SVG.
     layout = Pango.Layout.new(PangoCairo.FontMap.get_default().create_context())
@@ -52,6 +52,11 @@ def track_icon(reading, value):
     font.set_absolute_size(11 * Pango.SCALE)
     layout.set_font_description(font)
     layout.set_text(reading, -1)
+    return layout
+
+
+def track_icon(reading, value):
+    layout = track_text_layout(reading)
     _, logical = layout.get_pixel_extents()
     baseline = (24 - logical.height) / 2 - logical.y + layout.get_baseline() / Pango.SCALE
     # Always take the wide-image branch, even for short/unknown readings.

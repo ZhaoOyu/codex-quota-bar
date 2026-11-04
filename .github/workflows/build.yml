@@ -18,7 +18,7 @@ jobs:
       - name: Install native dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-gi python3-cairo librsvg2-common gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 xvfb dbus-x11
+          sudo apt-get install -y python3-gi python3-cairo librsvg2-common gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1 fonts-noto-cjk xvfb dbus-x11
       - name: Test protocol, quota and startup behavior
         run: dbus-run-session -- xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -v
       - name: Render Ubuntu track preview

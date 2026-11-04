@@ -261,9 +261,11 @@ class LinuxPanelTests(unittest.TestCase):
         self.assertFalse(p.window.get_visible())
 
     def test_track_image_is_visible_without_symbolic_recoloring(self):
-        from codex_quota_bar.linux import track_icon
+        from codex_quota_bar.linux import track_icon, track_text_layout
         from gi.repository import GdkPixbuf
         for reading in ("W 72 · 6天16小时", "W 100 · 6d16h", "--:--", "待刷新"):
+            self.assertEqual(track_text_layout(reading).get_unknown_glyphs_count(), 0,
+                             "Install fonts-noto-cjk to render the Chinese interface")
             for scale in (1, 2):
                 svg = track_icon(reading, .72)
                 root = ET.fromstring(svg)
@@ -284,10 +286,11 @@ class LinuxPanelTests(unittest.TestCase):
                 interior = [pixel(x, y)
                             for x in range(12 * scale, (width - 12) * scale)
                             for y in range(7 * scale, 18 * scale)]
-                self.assertTrue(any(p[0] > 200 and p[3] > 200 for p in interior),
-                                f"reading={reading!r}, scale={scale}, width={width}, "
-                                f"max alpha={max(p[3] for p in interior)}, "
-                                f"coverage={sum(p[3] for p in interior) / 255}")
+                # Font rasterizers differ in edge antialiasing; verify visible
+                # light glyph coverage, not one nearly-opaque pixel.
+                coverage = sum(p[3] for p in interior if p[0] > 200) / 255
+                self.assertGreater(coverage, 5 * scale * scale,
+                                   f"reading={reading!r}, scale={scale}, coverage={coverage}")
 
     def test_direct_menu_refresh_and_usage(self):
         self.controller.demo = False

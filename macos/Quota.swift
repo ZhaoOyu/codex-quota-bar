@@ -126,7 +126,7 @@ final class RPC {
     static func fetch(_ path: String?) throws -> Quota {
         let session = try RPC(override: path)
         defer { session.close() }
-        _ = try session.request(1, "initialize", ["clientInfo": ["name": "codex_quota_bar", "title": "Codex Quota Bar", "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.9"]])
+        _ = try session.request(1, "initialize", ["clientInfo": ["name": "codex_quota_bar", "title": "Codex Quota Bar", "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.10"]])
         try session.send(["method": "initialized"])
         return try Quota.parse(session.request(2, "account/rateLimits/read"))
     }

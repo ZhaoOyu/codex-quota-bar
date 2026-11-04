@@ -7,6 +7,7 @@
 - Restored a single wide, non-symbolic SVG with an explicit light foreground for the default dark Ubuntu panel. Pango measures the same sans-serif bold text used by the SVG loader, including CJK fallback; text and track now share one canvas. Ring mode keeps symbolic theme tinting.
 - Native GTK suite: 74 tests, 62 passed and 12 macOS-only tests skipped. Added full-color raster checks at 1×/2×, transparent corners, text inside the track, explicit foreground, no duplicated label, and short/long text width changes.
 - `scripts/preview_linux_track.py` renders real tray SVGs with synthetic readings. The resulting 3× preview was visually inspected: `W 72 · 6天16小时`, `H 78 · 02:34`, and `W 62` are centered inside their tracks. This is a component rendering check, not an end-to-end GNOME Shell screenshot.
+- The first v0.1.9 CI attempt was not released: the minimal Ubuntu runner lacked CJK fonts. Its `待刷新` sample had missing-glyph boxes and a peak alpha of 187, exposing both the missing font and a brittle single-pixel threshold. v0.1.10 installs CJK fonts in CI, recommends them in the DEB, checks zero unknown glyphs and measures actual visible text coverage. CI also saves a rendering preview for inspection.
 
 ## Ubuntu direct controls and track sizing — 2026-11-04
 
