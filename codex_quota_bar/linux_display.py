@@ -105,3 +105,15 @@ def track_svg(reading, value, width, render_text):
             shapes.append(f'<polygon points="{coords}" opacity="{alpha}"/>')
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="24" viewBox="0 0 {width} 24">'
             + "".join(shapes) + render_text(reading,width/2,16,11) + "</svg>")
+
+
+def indicator_track_svg(value):
+    """Square tray canvas: keep the track separate from the host's text label."""
+    shapes = []
+    for part, alpha in ((1, 0.28), (value or 0, 1)):
+        points = outline(34, part)
+        if points:
+            coords = " ".join(f"{x:.2f},{y:.2f}" for x, y in points)
+            shapes.append(f'<polygon points="{coords}" opacity="{alpha}"/>')
+    return ('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 34 34">'
+            '<g transform="translate(0 5)">' + "".join(shapes) + '</g></svg>')

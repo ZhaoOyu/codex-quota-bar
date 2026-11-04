@@ -1,5 +1,15 @@
 # Validation record
 
+## Ubuntu direct controls and track sizing — 2026-11-04
+
+- Started from remote main commit `73487b9` after downloading the v0.1.7 Ubuntu DEB and verifying its SHA256 against the release checksums.
+- The old track embedded all text in a variable-width SVG. Ubuntu's AppIndicator host controls icon sizing; the new track uses a 24 × 24 canvas and a separate native label for quota/countdown text.
+- Primary-click controls are exported as standard menu items, including quota/reset readings, refresh, window/style selection, visible content, startup and language. The optional detailed panel remains available. No unsupported primary-activation signal is required.
+- On the Ubuntu host, `/usr/bin/python3 -W ignore::DeprecationWarning -m unittest discover -s tests -q` ran 72 tests: 60 passed and 12 macOS-only tests were skipped. Native GTK tests used temporary preference files; startup and external URL actions were mocked. No user settings were changed.
+- Tests cover square track rendering, separate labels, direct menu controls, language rebuilding, failed preference writes, errors and weekly-only data. This is widget-level interaction validation, not an end-to-end pointer test of GNOME Shell.
+- The v0.1.8 DEB was built locally and extracted without installing over the user's version. Its packaged launcher passed `--demo --once` and the three-second GTK `--demo --smoke-test`.
+- Existing macOS behavior is unchanged; cross-platform CI remains required for release builds.
+
 ## Ubuntu interface parity — 2026-11-02
 
 Environment: Ubuntu 22.04 ARM64 in OrbStack, system Python 3.10, GTK 3.24.33, Ayatana AppIndicator 0.5.90, Cairo, Xvfb and Openbox. The host development machine is macOS.

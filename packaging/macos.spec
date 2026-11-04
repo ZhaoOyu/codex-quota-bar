@@ -11,6 +11,6 @@ exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='Codex Quota Bar',
           debug=False, strip=False, upx=False, console=False)
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name='Codex Quota Bar')
 app = BUNDLE(coll, name='Codex Quota Bar.app', bundle_identifier='io.github.codex-quota-bar',
-             info_plist={'LSUIElement': True, 'CFBundleShortVersionString': '0.1.7',
+             info_plist={'LSUIElement': True, 'CFBundleShortVersionString': '0.1.8',
                          'NSHighResolutionCapable': True})
 

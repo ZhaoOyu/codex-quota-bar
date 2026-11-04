@@ -10,11 +10,18 @@ from unittest.mock import patch
 import xml.etree.ElementTree as ET
 
 from codex_quota_bar.display import choose_window, fraction
-from codex_quota_bar.linux_display import Preferences, status_svg
+from codex_quota_bar.linux_display import Preferences, status_svg, indicator_track_svg
 from codex_quota_bar.model import Quota, Window
 
 
 class LinuxDisplayTests(unittest.TestCase):
+    def test_track_icon_is_square_and_does_not_embed_text(self):
+        for value in (None, 0, 0.62, 1):
+            root = ET.fromstring(indicator_track_svg(value))
+            self.assertEqual((root.get("width"), root.get("height")), ("24", "24"))
+            self.assertNotIn("<text", indicator_track_svg(value))
+            self.assertEqual(len(root.findall(".//{*}polygon")), 2 if value else 1)
+
     def test_preferences_round_trip_and_validation(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config/prefs.json"
@@ -78,8 +85,9 @@ class LinuxPanelTests(unittest.TestCase):
         self.preferences = Preferences(Path(self.directory.name) / "prefs.json")
         self.preferences.set("interfaceLanguage", "zh-Hans")
         self.controller = Controller(demo=True)
-        self.panel = QuotaPanel(self.controller, self.preferences,
-                               indicator_id="codex-quota-test-" + uuid.uuid4().hex)
+        with patch("codex_quota_bar.linux.startup.is_enabled", return_value=False):
+            self.panel = QuotaPanel(self.controller, self.preferences,
+                                   indicator_id="codex-quota-test-" + uuid.uuid4().hex)
 
     def tearDown(self):
         self.panel.close()
@@ -92,7 +100,8 @@ class LinuxPanelTests(unittest.TestCase):
         quota = self.controller.quota
         panel.languages.set_active_id("en")
         self.assertEqual(panel.header.get_text(), "Codex Quota · Demo")
-        self.assertEqual(panel.menu.get_children()[0].get_label(), "Open quota panel")
+        self.assertTrue(panel.menu_info["weekly"].get_label().startswith("Weekly quota remaining"))
+        self.assertEqual(panel.menu_refresh.get_label(), "Refresh now")
         self.assertEqual(Preferences(self.preferences.path).get("interfaceLanguage"), "en")
         panel.languages.set_active_id("zh-Hans")
         self.assertEqual(panel.header.get_text(), "Codex 额度 · 演示")
@@ -114,8 +123,10 @@ class LinuxPanelTests(unittest.TestCase):
         full = ET.fromstring(Path(p.indicator.get_icon()).read_text())
         p.part_buttons[2].clicked()
         short = ET.fromstring(Path(p.indicator.get_icon()).read_text())
-        self.assertLess(int(short.get("width")),int(full.get("width")))
-        self.assertEqual(p.indicator.get_label(),"[演示]")
+        self.assertEqual(int(short.get("width")), 24)
+        self.assertEqual(int(full.get("width")), 24)
+        self.assertIn("H 78", p.indicator.get_label())
+        self.assertNotIn("02:34", p.indicator.get_label())
         self.assertEqual(p.reset_value.get_text(),"02:34")
         self.assertEqual(Preferences(self.preferences.path).get("trackParts"),"1")
         p.appearance_buttons["indicatorStyle","ring"].clicked()
@@ -220,7 +231,71 @@ class LinuxPanelTests(unittest.TestCase):
             self.assertTrue(self.panel.auto.get_active())
 
     def test_open_from_menu_and_close(self):
-        self.panel.menu.get_children()[0].activate()
+        next(item for item in self.panel.menu.get_children()
+             if item.get_label() == "打开额度面板").activate()
         self.assertTrue(self.panel.window.get_visible())
         self.panel.hide()
         self.assertFalse(self.panel.window.get_visible())
+
+    def test_controls_are_available_without_opening_panel(self):
+        p = self.panel
+        self.assertFalse(p.window.get_visible())
+        self.assertTrue(p.menu_info["weekly"].get_visible())
+        p.menu_choices["quotaWindow"]["weekly"].activate()
+        self.assertEqual(Preferences(self.preferences.path).get("quotaWindow"), "weekly")
+        self.assertTrue(p.menu_choices["quotaWindow"]["weekly"].get_active())
+        self.assertFalse(p.menu_choices["quotaWindow"]["five_hour"].get_active())
+        p.menu_choices["indicatorStyle"]["track"].activate()
+        self.assertIn("W 62", p.indicator.get_label())
+        p.menu_parts[2].activate()
+        self.assertNotIn("02:34", p.indicator.get_label())
+        p.menu_parts[1].activate()  # Do not allow hiding the last reading.
+        self.assertTrue(p.menu_parts[1].get_active())
+        self.assertFalse(p.window.get_visible())
+
+    def test_direct_menu_refresh_and_usage(self):
+        self.controller.demo = False
+        self.controller.next_poll = time.time() + 60
+        self.panel.tick()
+        with patch.object(self.controller, "refresh") as refresh:
+            self.panel.menu_refresh.activate()
+            refresh.assert_called_once()
+        with patch("codex_quota_bar.linux.webbrowser.open") as open_url:
+            next(item for item in self.panel.menu.get_children()
+                 if item.get_label() == "用量页面").activate()
+            open_url.assert_called_once_with("https://chatgpt.com/codex/settings/usage")
+
+    def test_direct_menu_language_switch(self):
+        self.panel.menu_languages["en"].activate()
+        self.assertEqual(self.panel.menu_refresh.get_label(), "Refresh now")
+        self.assertTrue(self.panel.menu_languages["en"].get_active())
+        self.assertEqual(Preferences(self.preferences.path).get("interfaceLanguage"), "en")
+        self.panel.menu_languages["zh-Hans"].activate()
+        self.assertEqual(self.panel.menu_refresh.get_label(), "立即刷新")
+        self.assertFalse(self.panel.window.get_visible())
+
+    def test_menu_updates_missing_window_and_error(self):
+        p = self.panel
+        self.controller.quota = Quota(None, self.controller.quota.weekly, time.time())
+        p.tick()
+        self.assertFalse(p.menu_info["five_hour"].get_visible())
+        self.assertIn("62%", p.menu_info["weekly"].get_label())
+        self.controller.demo = False
+        self.controller.next_poll = time.time() + 60
+        self.controller.quota = None
+        self.controller.error = "额度读取失败"
+        p.tick()
+        self.assertNotIn("62%", p.menu_info["weekly"].get_label())
+        self.assertIn("额度读取失败", p.menu_info["status"].get_label())
+
+    def test_menu_startup_and_failed_preference_write(self):
+        p = self.panel
+        with patch("codex_quota_bar.linux.startup.set_enabled") as setter, \
+             patch("codex_quota_bar.linux.startup.is_enabled", return_value=not p.auto.get_active()):
+            p.menu_auto.activate()
+            setter.assert_called_once_with(p.menu_auto.get_active())
+            self.assertEqual(p.auto.get_active(), p.menu_auto.get_active())
+        with patch.object(self.preferences, "set", side_effect=OSError):
+            p.menu_choices["quotaWindow"]["weekly"].activate()
+        self.assertTrue(p.menu_choices["quotaWindow"]["five_hour"].get_active())
+        self.assertIn("无法保存", p.menu_info["status"].get_label())

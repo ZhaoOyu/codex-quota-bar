@@ -19,12 +19,12 @@ try:
 except ValueError:
     gi.require_version("AppIndicator3", "0.1")
     from gi.repository import AppIndicator3 as AppIndicator
-from gi.repository import Gdk, GLib, GObject, Gtk
+from gi.repository import Gdk, GLib, Gtk
 
 from . import __version__, startup
 from .client import UsageError
 from .display import APPEARANCE, appearance, track_reading, CONTROL_LABELS, WINDOW_LABELS, choose_window, fraction
-from .linux_display import Preferences, status_svg, track_svg
+from .linux_display import Preferences, status_svg, indicator_track_svg
 from .model import countdown, remaining_text, reset_text
 
 
@@ -84,21 +84,97 @@ class QuotaPanel:
         self.indicator.set_title("Codex Quota Bar")
         self.indicator.set_icon_theme_path(self.icons.name)
         self.build_menu()
-        # Newer Ayatana versions can forward primary activation directly.
-        if GObject.signal_lookup("activate", self.indicator.__gtype__):
-            self.indicator.connect("activate", self.present)
+        # AppIndicator hosts own primary-click behavior. Export real menu items
+        # so GNOME/Wayland can display controls directly, without a second click.
         self.indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
         self.tick()
 
     def build_menu(self):
+        old_menu = getattr(self, "menu", None)
         self.menu = Gtk.Menu()
+        self.menu_info = {}
+        for key in ("five_hour", "weekly", "reset", "status"):
+            self.menu_info[key] = self.menu_action("", lambda *_: None)
+        self.menu.append(Gtk.SeparatorMenuItem())
+        self.menu_refresh = self.menu_action("立即刷新", self.refresh)
+        self.menu_choices = {}
+        groups = [(key, title, WINDOW_LABELS) for key, title in CONTROL_LABELS.items()]
+        groups.append(("indicatorStyle", APPEARANCE["indicatorStyle"][0],
+                       APPEARANCE["indicatorStyle"][1]))
+        for key, title, options in groups:
+            parent = self.menu_action(title, lambda *_: None)
+            submenu = Gtk.Menu()
+            parent.set_submenu(submenu)
+            self.menu_choices[key] = {}
+            for choice, label in options.items():
+                item = Gtk.CheckMenuItem(label=tr(label))
+                item.set_draw_as_radio(True)
+                item.connect("activate", self.select, key, choice)
+                submenu.append(item)
+                self.menu_choices[key][choice] = item
+        self.menu_parts = {}
+        for bit, label in ((1, "额度数值"), (2, "倒计时")):
+            item = Gtk.CheckMenuItem(label=tr(label))
+            item.connect("activate", self.toggle_part, bit)
+            self.menu.append(item)
+            self.menu_parts[bit] = item
+        self.menu_auto = Gtk.CheckMenuItem(label=tr("登录系统时启动"))
+        self.menu_auto.connect("activate", self.menu_toggle_startup)
+        self.menu.append(self.menu_auto)
+        parent = self.menu_action("Language" if language.english() else "语言", lambda *_: None)
+        submenu = Gtk.Menu()
+        parent.set_submenu(submenu)
+        self.menu_languages = {}
+        for choice, label in zip(language.CHOICES, language.names()):
+            item = Gtk.CheckMenuItem(label=label)
+            item.set_draw_as_radio(True)
+            item.connect("activate", self.menu_change_language, choice)
+            submenu.append(item)
+            self.menu_languages[choice] = item
+        self.menu_action("用量页面", self.usage)
         open_item = self.menu_action("打开额度面板", self.present)
-        self.menu_action("立即刷新", self.refresh)
         self.menu.append(Gtk.SeparatorMenuItem())
         self.menu_action("退出", lambda *_: Gtk.main_quit())
         self.menu.show_all()
         self.indicator.set_menu(self.menu)
         self.indicator.set_secondary_activate_target(open_item)
+        if old_menu is not None:
+            old_menu.destroy()
+
+    @staticmethod
+    def checked(item, active, callback):
+        item.handler_block_by_func(callback)
+        item.set_active(active)
+        item.handler_unblock_by_func(callback)
+
+    def menu_toggle_startup(self, item):
+        self.auto.set_active(item.get_active())
+        self.tick()
+
+    def menu_change_language(self, _, choice):
+        self.languages.set_active_id(choice)
+        self.tick()
+
+    def update_menu(self, quota, quota_choice, time_choice, style, parts):
+        for key in ("five_hour", "weekly"):
+            item = self.menu_info[key]
+            item.set_visible(key == "weekly" or bool(quota and quota.five_hour is not None))
+            value, _, detail = self.rows[key]
+            item.set_label(tr(WINDOW_LABELS[key] + "额度剩余") + ": " + value.get_text()
+                           + " · " + detail.get_text())
+        self.menu_info["reset"].set_label(self.reset_title.get_text() + ": " + self.reset_value.get_text())
+        self.menu_info["status"].set_label(self.message.get_text())
+        self.menu_refresh.set_sensitive(self.refresh_button.get_sensitive())
+        for key, selection in (("quotaWindow", quota_choice), ("countdownWindow", time_choice),
+                               ("indicatorStyle", style)):
+            for choice, item in self.menu_choices[key].items():
+                self.checked(item, choice == selection, self.select)
+        for bit, item in self.menu_parts.items():
+            self.checked(item, bool(parts & bit), self.toggle_part)
+            item.set_sensitive(style == "track" or bit == 2)
+        self.checked(self.menu_auto, self.auto.get_active(), self.menu_toggle_startup)
+        for choice, item in self.menu_languages.items():
+            self.checked(item, choice == language.choice, self.menu_change_language)
 
     def menu_action(self, title, callback):
         item = Gtk.MenuItem(label=tr(title))
@@ -253,11 +329,9 @@ class QuotaPanel:
             button.handler_unblock_by_func(self.toggle_part)
         if style == "track":
             reading = " · ".join(text for bit, text in ((1, amount), (2, time_text)) if parts & bit)
-            metric = cairo.Context(cairo.RecordingSurface(cairo.CONTENT_COLOR_ALPHA, None))
-            metric.select_font_face("sans-serif",cairo.FONT_SLANT_NORMAL,cairo.FONT_WEIGHT_BOLD)
-            metric.set_font_size(11)
-            svg = track_svg(reading,fraction(quota_window,now),max(34,int(metric.text_extents(reading).width+19)),text_outline)
+            svg = indicator_track_svg(fraction(quota_window, now))
         else:
+            reading = ("· " + time_text) if show_time else ""
             svg = status_svg(quota_window, now, quota_choice, text_outline)
         key = hashlib.sha256(svg.encode()).hexdigest()[:16]
         if key != self.icon_key:
@@ -272,8 +346,8 @@ class QuotaPanel:
             if len(self.icon_paths) > 64:
                 self.icon_paths.pop(0).unlink(missing_ok=True)
         warning = bool(self.controller.error) or bool(quota and now - quota.fetched_at > 180)
-        self.indicator.set_label(tr(" ".join(x for x in ("·" if show_time and style=="ring" else "",
-                                 "!" if warning else "", time_text if show_time and style=="ring" else "",
+        self.indicator.set_label(tr(" ".join(x for x in (
+                                 "!" if warning else "", reading,
                                  "[演示]" if self.controller.demo else "") if x)), "")
         self.indicator.set_title(tr("Codex 额度 · " + title))
         self.header.set_text(tr("Codex 额度 · 演示" if self.controller.demo else "Codex 额度"))
@@ -292,7 +366,7 @@ class QuotaPanel:
         self.message.set_text(tr(message))
         self.message.set_tooltip_text(tr(message))
         self.refresh_button.set_sensitive(not self.controller.busy and not self.controller.demo)
-        self.menu.get_children()[1].set_sensitive(self.refresh_button.get_sensitive())
+        self.update_menu(quota, quota_choice, time_choice, style, parts)
         # Shrink when a section disappears, without requesting a 1px native window.
         _, natural = self.window.get_child().get_preferred_size()
         size = (natural.width, natural.height)

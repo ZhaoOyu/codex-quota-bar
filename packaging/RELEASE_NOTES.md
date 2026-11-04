@@ -1,7 +1,13 @@
-# Codex 余量 0.1.7
+# Codex 余量 0.1.8
 
-Codex 余量现在可以使用简体中文和英文。首次打开时会跟随系统语言。想用另一种语言时，在面板底部的「语言 / Language」中选择即可，重新打开后会保留你的选择。
+修复 Ubuntu 跑道显示与点击交互：
 
-The app now follows your system language by default. Choose **简体中文** or **English** under **Language** at the bottom of the panel. Changes take effect immediately and your choice is saved for next time.
+- 跑道改为固定尺寸图标，额度数值和倒计时使用独立的顶栏文字，避免长条图标被缩小或截断。
+- 点击顶栏直接展开可操作菜单：查看额度/重置时间、刷新、选择额度窗口与样式、显示内容、开机启动和语言。
+- 保留独立详细面板入口，兼容原有显示偏好；Mac 跑道与面板不变。
 
-[中文使用指南](https://github.com/ZhaoOyu/codex-quota-bar/blob/v0.1.7/README.md) · [English guide](https://github.com/ZhaoOyu/codex-quota-bar/blob/v0.1.7/README.en.md)
+Ubuntu now uses a fixed-size track icon plus a native text label, avoiding squashed wide tray images. Clicking the indicator opens quota readings and controls directly. Refresh, display settings, startup and language no longer require opening a second panel. The detailed panel remains optional; macOS behavior is unchanged.
+
+退出旧版后，安装新版 Ubuntu DEB 即可覆盖升级，无需先卸载。
+
+[中文使用指南](https://github.com/ZhaoOyu/codex-quota-bar/blob/v0.1.8/README.md) · [English guide](https://github.com/ZhaoOyu/codex-quota-bar/blob/v0.1.8/README.en.md)
