@@ -1,5 +1,13 @@
 # Validation record
 
+## Ubuntu enclosing track correction — 2026-11-04
+
+- The user's v0.1.8 screenshot showed the small track separated from its text. The previous split-image workaround did not preserve the intended layout.
+- Inspected the installed Ubuntu AppIndicators `appIndicator.js`: `_createIconByIconData` routes writable images with width >= 1.5 × height through `_loadCustomImage`, preserving their width. Unlike square symbolic icons, this custom-image path does not apply foreground tinting.
+- Restored a single wide, non-symbolic SVG with an explicit light foreground for the default dark Ubuntu panel. Pango measures the same sans-serif bold text used by the SVG loader, including CJK fallback; text and track now share one canvas. Ring mode keeps symbolic theme tinting.
+- Native GTK suite: 74 tests, 62 passed and 12 macOS-only tests skipped. Added full-color raster checks at 1×/2×, transparent corners, text inside the track, explicit foreground, no duplicated label, and short/long text width changes.
+- `scripts/preview_linux_track.py` renders real tray SVGs with synthetic readings. The resulting 3× preview was visually inspected: `W 72 · 6天16小时`, `H 78 · 02:34`, and `W 62` are centered inside their tracks. This is a component rendering check, not an end-to-end GNOME Shell screenshot.
+
 ## Ubuntu direct controls and track sizing — 2026-11-04
 
 - Started from remote main commit `73487b9` after downloading the v0.1.7 Ubuntu DEB and verifying its SHA256 against the release checksums.

@@ -5,6 +5,7 @@ import math
 import os
 from pathlib import Path
 import tempfile
+from xml.sax.saxutils import escape
 
 from .track import outline
 from .display import APPEARANCE, CONTROL_LABELS, WINDOWS, fraction
@@ -96,7 +97,12 @@ def status_svg(window, now, choice, render_text=None):
             f'{shapes}<g fill="black" font-family="sans-serif" font-weight="bold" text-anchor="middle">'
             f'{label(text, 14, size)}{label(marker, 23.6, size)}</g></svg>')
 
-def track_svg(reading, value, width, render_text):
+def track_svg(reading, value, width, baseline=16):
+    """Full-color wide image for GNOME's custom-image path (not symbolic).
+
+    That path preserves width but does not apply the panel's symbolic tint.
+    Use the stock Ubuntu dark panel's light foreground explicitly.
+    """
     shapes = []
     for part, alpha in ((1, 0.28), (value or 0, 1)):
         points = outline(width, part)
@@ -104,16 +110,7 @@ def track_svg(reading, value, width, render_text):
             coords = " ".join(f"{x:.2f},{y:.2f}" for x,y in points)
             shapes.append(f'<polygon points="{coords}" opacity="{alpha}"/>')
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="24" viewBox="0 0 {width} 24">'
-            + "".join(shapes) + render_text(reading,width/2,16,11) + "</svg>")
-
-
-def indicator_track_svg(value):
-    """Square tray canvas: keep the track separate from the host's text label."""
-    shapes = []
-    for part, alpha in ((1, 0.28), (value or 0, 1)):
-        points = outline(34, part)
-        if points:
-            coords = " ".join(f"{x:.2f},{y:.2f}" for x, y in points)
-            shapes.append(f'<polygon points="{coords}" opacity="{alpha}"/>')
-    return ('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 34 34">'
-            '<g transform="translate(0 5)">' + "".join(shapes) + '</g></svg>')
+            f'<title>{escape(reading)}</title><g fill="#eeeeec">' + "".join(shapes)
+            + f'<text x="{width / 2}" y="{baseline}" font-family="sans-serif" '
+              f'font-size="11" font-weight="bold" text-anchor="middle">{escape(reading)}</text>'
+            + '</g></svg>')

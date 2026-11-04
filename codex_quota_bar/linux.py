@@ -13,18 +13,19 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
+gi.require_version("PangoCairo", "1.0")
 try:
     gi.require_version("AyatanaAppIndicator3", "0.1")
     from gi.repository import AyatanaAppIndicator3 as AppIndicator
 except ValueError:
     gi.require_version("AppIndicator3", "0.1")
     from gi.repository import AppIndicator3 as AppIndicator
-from gi.repository import Gdk, GLib, Gtk
+from gi.repository import Gdk, GLib, Gtk, Pango, PangoCairo
 
 from . import __version__, startup
 from .client import UsageError
 from .display import APPEARANCE, appearance, track_reading, CONTROL_LABELS, WINDOW_LABELS, choose_window, fraction
-from .linux_display import Preferences, status_svg, indicator_track_svg
+from .linux_display import Preferences, status_svg, track_svg
 from .model import countdown, remaining_text, reset_text
 
 
@@ -41,6 +42,20 @@ def text_outline(text, center, baseline, size):
     path = " ".join(commands[kind] + " ".join(f"{number:.4f}" for number in points)
                     for kind, points in context.copy_path())
     return f'<path d="{path}"/>'
+
+
+def track_icon(reading, value):
+    # Match librsvg's Pango text shaping, including CJK font fallback. Cairo's
+    # toy font metrics can disagree with the glyphs used in the final SVG.
+    layout = Pango.Layout.new(PangoCairo.FontMap.get_default().create_context())
+    font = Pango.FontDescription("sans-serif bold")
+    font.set_absolute_size(11 * Pango.SCALE)
+    layout.set_font_description(font)
+    layout.set_text(reading, -1)
+    _, logical = layout.get_pixel_extents()
+    baseline = (24 - logical.height) / 2 - logical.y + layout.get_baseline() / Pango.SCALE
+    # Always take the wide-image branch, even for short/unknown readings.
+    return track_svg(reading, value, max(40, logical.width + 24), baseline)
 
 
 class QuotaPanel:
@@ -329,13 +344,15 @@ class QuotaPanel:
             button.handler_unblock_by_func(self.toggle_part)
         if style == "track":
             reading = " · ".join(text for bit, text in ((1, amount), (2, time_text)) if parts & bit)
-            svg = indicator_track_svg(fraction(quota_window, now))
+            svg = track_icon(reading, fraction(quota_window, now))
+            reading = ""  # The reading is inside the track, not a second label.
         else:
             reading = ("· " + time_text) if show_time else ""
             svg = status_svg(quota_window, now, quota_choice, text_outline)
         key = hashlib.sha256(svg.encode()).hexdigest()[:16]
         if key != self.icon_key:
-            path = Path(self.icons.name) / f"quota-{key}-symbolic.svg"
+            suffix = "-symbolic" if style == "ring" else ""
+            path = Path(self.icons.name) / f"quota-{key}{suffix}.svg"
             path.write_text(svg)
             self.indicator.set_icon_full(str(path), tr("Codex 额度：" + WINDOW_LABELS[quota_choice]
                                          + "剩余 " + remaining_text(quota_window, now)))

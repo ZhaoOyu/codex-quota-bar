@@ -10,17 +10,22 @@ from unittest.mock import patch
 import xml.etree.ElementTree as ET
 
 from codex_quota_bar.display import choose_window, fraction
-from codex_quota_bar.linux_display import Preferences, status_svg, indicator_track_svg
+from codex_quota_bar.linux_display import Preferences, status_svg, track_svg
 from codex_quota_bar.model import Quota, Window
 
 
 class LinuxDisplayTests(unittest.TestCase):
-    def test_track_icon_is_square_and_does_not_embed_text(self):
+    def test_track_wraps_text_with_explicit_foreground(self):
         for value in (None, 0, 0.62, 1):
-            root = ET.fromstring(indicator_track_svg(value))
-            self.assertEqual((root.get("width"), root.get("height")), ("24", "24"))
-            self.assertNotIn("<text", indicator_track_svg(value))
+            root = ET.fromstring(track_svg("W 72 · 6天16小时", value, 150))
+            self.assertEqual((root.get("width"), root.get("height")), ("150", "24"))
+            self.assertEqual(root.find(".//{*}text").text, "W 72 · 6天16小时")
+            self.assertEqual(root.find("{*}g").get("fill"), "#eeeeec")
             self.assertEqual(len(root.findall(".//{*}polygon")), 2 if value else 1)
+
+    def test_track_escapes_reading(self):
+        root = ET.fromstring(track_svg("< & >", None, 80))
+        self.assertEqual(root.find(".//{*}text").text, "< & >")
 
     def test_preferences_round_trip_and_validation(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -123,10 +128,12 @@ class LinuxPanelTests(unittest.TestCase):
         full = ET.fromstring(Path(p.indicator.get_icon()).read_text())
         p.part_buttons[2].clicked()
         short = ET.fromstring(Path(p.indicator.get_icon()).read_text())
-        self.assertEqual(int(short.get("width")), 24)
-        self.assertEqual(int(full.get("width")), 24)
-        self.assertIn("H 78", p.indicator.get_label())
-        self.assertNotIn("02:34", p.indicator.get_label())
+        self.assertGreaterEqual(int(short.get("width")), 36)
+        self.assertLess(int(short.get("width")), int(full.get("width")))
+        self.assertEqual(short.find(".//{*}text").text, "H 78")
+        self.assertIn("02:34", full.find(".//{*}text").text)
+        self.assertEqual(p.indicator.get_label(), "[演示]")
+        self.assertNotIn("symbolic", p.indicator.get_icon())
         self.assertEqual(p.reset_value.get_text(),"02:34")
         self.assertEqual(Preferences(self.preferences.path).get("trackParts"),"1")
         p.appearance_buttons["indicatorStyle","ring"].clicked()
@@ -246,12 +253,37 @@ class LinuxPanelTests(unittest.TestCase):
         self.assertTrue(p.menu_choices["quotaWindow"]["weekly"].get_active())
         self.assertFalse(p.menu_choices["quotaWindow"]["five_hour"].get_active())
         p.menu_choices["indicatorStyle"]["track"].activate()
-        self.assertIn("W 62", p.indicator.get_label())
+        self.assertIn("W 62", Path(p.indicator.get_icon()).read_text())
         p.menu_parts[2].activate()
         self.assertNotIn("02:34", p.indicator.get_label())
         p.menu_parts[1].activate()  # Do not allow hiding the last reading.
         self.assertTrue(p.menu_parts[1].get_active())
         self.assertFalse(p.window.get_visible())
+
+    def test_track_image_is_visible_without_symbolic_recoloring(self):
+        from codex_quota_bar.linux import track_icon
+        from gi.repository import GdkPixbuf
+        for reading in ("W 72 · 6天16小时", "W 100 · 6d16h", "--:--", "待刷新"):
+            for scale in (1, 2):
+                svg = track_icon(reading, .72)
+                root = ET.fromstring(svg)
+                width = int(root.get("width"))
+                loader = GdkPixbuf.PixbufLoader.new_with_type("svg")
+                loader.set_size(width * scale, 24 * scale)
+                loader.write(svg.encode())
+                loader.close()
+                pixels = loader.get_pixbuf()
+                self.assertEqual((pixels.get_width(), pixels.get_height()),
+                                 (width * scale, 24 * scale))
+                data = pixels.get_pixels()
+                def pixel(x, y):
+                    pos = y * pixels.get_rowstride() + x * 4
+                    return data[pos:pos + 4]
+                self.assertEqual(pixel(0, 0)[3], 0)
+                # Full-color loader must show light glyph pixels inside the track.
+                self.assertTrue(any(pixel(x, y)[0] > 200 and pixel(x, y)[3] > 200
+                                    for x in range(12 * scale, (width - 12) * scale)
+                                    for y in range(7 * scale, 18 * scale)))
 
     def test_direct_menu_refresh_and_usage(self):
         self.controller.demo = False
