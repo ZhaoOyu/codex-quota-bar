@@ -75,6 +75,7 @@ class QuotaPanel:
         self.panel_size = None
         self.shell_bridge = None
         self.window = Gtk.Window(title=tr("Codex 额度"))
+        self.window.set_icon_name("codex-quota-bar")
         self.window.set_name("codex-quota")
         self.window.set_decorated(False)
         self.window.set_resizable(False)

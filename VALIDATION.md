@@ -1,5 +1,13 @@
 # Validation record
 
+## Application icon replacement — 2026-11-06
+
+- Converted the approved 1254 × 1254 RGBA artwork into nine PNG sizes (16–1024) and a multi-resolution ICNS without changing the design. Visually checked the 128-pixel result. Original alpha is retained; generated files are committed so normal builds need no Pillow dependency.
+- The Ubuntu desktop entry names the new hicolor icon; the DEB installs every size. The GTK window also names the icon. Native Swift packaging copies the ICNS before signing and declares `CFBundleIconFile`; the legacy PyInstaller spec uses the same ICNS.
+- Three dependency-free tests verify PNG sizes/RGBA, ICNS container structure and high-resolution entries, and the desktop icon reference. CI also checks the installed Ubuntu icon and uses macOS `iconutil` to decode the actual bundled ICNS.
+- Local GTK/D-Bus suite: 82 tests, 70 passed and 12 macOS-only checks skipped. The new DEB was built and its installed-path icon assets inspected without replacing the user's running installation.
+- No changes to live menu-bar rings/tracks, GNOME extension code, quota fetching, or preferences. Actual macOS application-icon display must be assessed on macOS; local verification is on Linux.
+
 ## Native GNOME companion extension — 2026-11-04
 
 - Added a GNOME 45–50 ES-module extension with its own PanelMenu popup, not a patch to Ubuntu AppIndicators. Session D-Bus exports display-only snapshots and whitelisted controls; the existing Codex client is unchanged.

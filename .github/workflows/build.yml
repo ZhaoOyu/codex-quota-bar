@@ -38,6 +38,8 @@ jobs:
           /usr/bin/python3 scripts/build_gnome_extension.py
           /usr/bin/python3 scripts/build_deb.py
           sudo apt-get install -y ./dist/*.deb
+          test -s /usr/share/icons/hicolor/256x256/apps/codex-quota-bar.png
+          grep -qx 'Icon=codex-quota-bar' /usr/share/applications/codex-quota-bar.desktop
           codex-quota-bar --demo --once
           dbus-run-session -- xvfb-run -a codex-quota-bar --demo --smoke-test
       - uses: actions/upload-artifact@v4
@@ -71,6 +73,12 @@ jobs:
         run: python -m codex_quota_bar --demo --smoke-test
       - name: Build app
         run: bash scripts/build_macos.sh
+      - name: Validate bundled application icon
+        run: |
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIconFile' 'dist/Codex Quota Bar.app/Contents/Info.plist')" = AppIcon.icns
+          cmp packaging/icons/AppIcon.icns 'dist/Codex Quota Bar.app/Contents/Resources/AppIcon.icns'
+          iconcheck=$(mktemp -d)
+          iconutil -c iconset 'dist/Codex Quota Bar.app/Contents/Resources/AppIcon.icns' -o "$iconcheck/AppIcon.iconset"
       - name: Test bundled application
         run: '"dist/Codex Quota Bar.app/Contents/MacOS/Codex Quota Bar" --demo --smoke-test'
       - name: Test bundled RPC with Finder-style PATH

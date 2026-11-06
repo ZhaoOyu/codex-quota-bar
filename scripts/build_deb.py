@@ -27,6 +27,11 @@ def main():
         desktop = stage / "usr/share/applications"
         desktop.mkdir(parents=True)
         shutil.copy2(ROOT / "packaging/codex-quota-bar.desktop", desktop)
+        for size in (16, 24, 32, 48, 64, 128, 256, 512, 1024):
+            icons = stage / f"usr/share/icons/hicolor/{size}x{size}/apps"
+            icons.mkdir(parents=True)
+            shutil.copy2(ROOT / f"packaging/icons/codex-quota-bar-{size}.png",
+                         icons / "codex-quota-bar.png")
         extension = stage / "usr/share/gnome-shell/extensions/codex-quota-bar@zhaooyu.github.io"
         extension.mkdir(parents=True)
         for name in ("metadata.json", "extension.js", "stylesheet.css"):
